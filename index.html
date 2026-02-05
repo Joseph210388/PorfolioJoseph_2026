@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png"
+    href="https://res.cloudinary.com/deqzz76ni/image/upload/v1761171897/70bba8da-a91f-4b7f-9a77-f233d7069613.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Porfolio de Joseph Valderrama</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+
+    :root {
+      --color-background: #F8F9FA;
+      --color-card-background: #FFFFFF;
+      --color-text-primary: #212529;
+      --color-text-secondary: #495057;
+      --color-text-muted: #6C757D;
+      --color-accent: #EC4869;
+      --color-border: #DEE2E6;
+      --color-header-bg: rgba(248, 249, 250, 0.8);
+      --color-blob-1: rgba(128, 0, 128, 0.1);
+      --color-blob-2: rgba(239, 68, 68, 0.1);
+      --color-blob-3: rgba(59, 130, 246, 0.1);
+    }
+
+    [data-theme='dark'] {
+      --color-background: #0F1C3A;
+      --color-card-background: #112240;
+      --color-text-primary: #F8F9FA;
+      --color-text-secondary: #CED4DA;
+      --color-text-muted: #8892b0;
+      --color-accent: #EC4869;
+      --color-border: #495057;
+      --color-header-bg: rgba(15, 28, 58, 0.8);
+      --color-blob-1: rgba(128, 0, 128, 0.2);
+      --color-blob-2: rgba(239, 68, 68, 0.2);
+      --color-blob-3: rgba(59, 130, 246, 0.2);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--color-background);
+      color: var(--color-text-secondary);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .animate-blink {
+      animation: blink 750ms step-end infinite;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          colors: {
+            background: 'var(--color-background)',
+            'card-background': 'var(--color-card-background)',
+            'text-primary': 'var(--color-text-primary)',
+            'text-secondary': 'var(--color-text-secondary)',
+            'text-muted': 'var(--color-text-muted)',
+            'accent': 'var(--color-accent)',
+            'border': 'var(--color-border)',
+            'header-bg': 'var(--color-header-bg)',
+          }
+        }
+      }
+    }
+  </script>
+
+</head>
+
+<body class="overflow-x-hidden">
+  <div id="root"></div>
+  <script type="module" src="/src/index.tsx"></script>
+</body>
+
+</html>
