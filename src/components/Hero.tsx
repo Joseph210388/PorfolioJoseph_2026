@@ -6,11 +6,14 @@ const CV_PDF_BY_LANG = {
     en: '/pdf/CVJosephValderrama_EN.pdf',
 } as const;
 
+const LG_MIN_WIDTH = '(min-width: 1024px)';
+
 interface HeroProps {
     language: keyof typeof CV_PDF_BY_LANG;
     t: {
         greeting: string;
         name: string;
+        staticSubtitle: string;
         subtitles: string[];
         description: string;
         resumeButton: string;
@@ -19,21 +22,33 @@ interface HeroProps {
 }
 
 const Hero: React.FC<HeroProps> = ({ language, t }) => {
+    const [isLgUp, setIsLgUp] = useState(
+        () => typeof window !== 'undefined' && window.matchMedia(LG_MIN_WIDTH).matches,
+    );
     const [subtitleIndex, setSubtitleIndex] = useState(0);
     const [displayedText, setDisplayedText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
-    
+
     useEffect(() => {
-        // Reset animation on language change
+        const mq = window.matchMedia(LG_MIN_WIDTH);
+        const onChange = () => setIsLgUp(mq.matches);
+        onChange();
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
+
+    useEffect(() => {
         setDisplayedText('');
         setIsDeleting(false);
         setSubtitleIndex(0);
     }, [t]);
 
     useEffect(() => {
+        if (!isLgUp) return;
+
         const handleTyping = () => {
             const currentSubtitle = t.subtitles[subtitleIndex];
-            
+
             if (isDeleting) {
                 if (displayedText.length > 0) {
                     setDisplayedText(currentSubtitle.substring(0, displayedText.length - 1));
@@ -41,8 +56,7 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
                     setIsDeleting(false);
                     setSubtitleIndex((prevIndex) => (prevIndex + 1) % t.subtitles.length);
                 }
-            } 
-            else {
+            } else {
                 if (displayedText.length < currentSubtitle.length) {
                     setDisplayedText(currentSubtitle.substring(0, displayedText.length + 1));
                 } else {
@@ -55,7 +69,7 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
         const timeout = setTimeout(handleTyping, typingSpeed);
 
         return () => clearTimeout(timeout);
-    }, [displayedText, isDeleting, subtitleIndex, t]);
+    }, [displayedText, isDeleting, subtitleIndex, t, isLgUp]);
     
     const handleScrollToContact = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
@@ -66,15 +80,28 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
     return (
         <section id="home" className="scroll-mt-24 min-h-[calc(100vh-80px)]">
             <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-24 flex items-center min-h-[calc(100vh-80px)] py-20">
-                <div className="w-full grid md:grid-cols-2 gap-10 items-center">
+                <div className="w-full grid lg:grid-cols-2 gap-10 items-center">
                     <div className="animate-fade-in-up">
                         <p className="text-accent text-lg font-medium mb-2">{t.greeting}</p>
                         <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-text-primary leading-tight">
                             {t.name} <span className="text-accent">Joseph Valderrama</span>.
                         </h1>
-                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-text-secondary mt-2">
-                            {displayedText}
-                            <span className="animate-blink">|</span>
+                        <h2
+                            className={`text-3xl sm:text-4xl md:text-5xl font-bold text-text-secondary mt-2 leading-snug ${
+                                isLgUp ? 'min-h-[5lh] sm:min-h-[4lh] md:min-h-[3lh]' : ''
+                            }`}
+                            aria-live={isLgUp ? 'polite' : undefined}
+                        >
+                            {isLgUp ? (
+                                <>
+                                    {displayedText}
+                                    <span className="animate-blink" aria-hidden>
+                                        |
+                                    </span>
+                                </>
+                            ) : (
+                                t.staticSubtitle
+                            )}
                         </h2>
                         <p className="text-text-secondary mt-4 max-w-xl">
                             {t.description}
@@ -98,7 +125,7 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
                             </a>
                         </div>
                     </div>
-                    <div className="hidden md:flex justify-center items-center animate-fade-in">
+                    <div className="hidden lg:flex justify-center items-center animate-fade-in">
                         <div className="w-80 h-80 lg:w-96 lg:h-96 rounded-full bg-card-background border-2 border-border shadow-2xl overflow-hidden">
                             <img
                                 src="/img/profile.jpeg"

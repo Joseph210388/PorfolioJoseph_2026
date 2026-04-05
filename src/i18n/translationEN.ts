@@ -9,7 +9,9 @@ export const en = {
     hero: {
         greeting: 'Hello,',
         name: "I'm",
+        staticSubtitle: 'Web Developer Full Stack',
         subtitles: [
+            'Web Developer Full Stack',
             'I build things for the web.',
             'I design and develop digital solutions.',
             'I solve problems with web technology.',
