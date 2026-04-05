@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { scrollToSectionById } from '../utils/scrollToSection';
 
 interface HeaderProps {
     t: {
@@ -10,72 +11,110 @@ interface HeaderProps {
     }
 }
 
+const SECTION_HREFS = ['#home', '#about', '#proyectos', '#experiencia', '#contacto'] as const;
+
 const Header: React.FC<HeaderProps> = ({ t }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [activeLink, setActiveLink] = useState('#home');
-    const [indicatorStyle, setIndicatorStyle] = useState({});
-    
-    const navLinks = [
-        { href: '#home', text: t.home },
-        { href: '#about', text: t.about },
-        { href: '#proyectos', text: t.projects },
-        { href: '#experiencia', text: t.experience },
-        { href: '#contacto', text: t.contact },
-    ];
+    const [activeLink, setActiveLink] = useState<string>('#home');
+    const [indicatorStyle, setIndicatorStyle] = useState<React.CSSProperties>({});
+
+    const navLinks = useMemo(
+        () => [
+            { href: '#home' as const, text: t.home },
+            { href: '#about' as const, text: t.about },
+            { href: '#proyectos' as const, text: t.projects },
+            { href: '#experiencia' as const, text: t.experience },
+            { href: '#contacto' as const, text: t.contact },
+        ],
+        [t.home, t.about, t.projects, t.experience, t.contact]
+    );
 
     const navListRef = useRef<HTMLUListElement>(null);
     const linkRefs = useRef<(HTMLLIElement | null)[]>([]);
+    const scrollRafRef = useRef<number>(0);
 
     const handleNavClick = (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
         event.preventDefault();
-        const id = href.substring(1);
-        const element = document.getElementById(id);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-        }
+        const id = href.replace(/^#/, '');
+        if (!id) return;
+        window.history.replaceState(null, '', `#${id}`);
+        scrollToSectionById(id, 'smooth');
         if (isOpen) {
             setIsOpen(false);
         }
     };
 
-    useEffect(() => {
-        const handleScroll = () => {
-            const sections = navLinks.map(link => document.querySelector(link.href));
-            const scrollPosition = window.scrollY + window.innerHeight / 2;
+    const getSectionDocumentTop = useCallback((el: Element) => {
+        const rect = el.getBoundingClientRect();
+        return rect.top + window.scrollY;
+    }, []);
 
-            let currentSection = '#home';
-            for (let i = sections.length - 1; i >= 0; i--) {
-                const section = sections[i] as HTMLElement;
-                if (section && section.offsetTop <= scrollPosition) {
-                    currentSection = navLinks[i].href;
-                    break;
-                }
-            }
-             setActiveLink(currentSection);
-        };
+    const updateActiveFromScroll = useCallback(() => {
+        const sections = SECTION_HREFS.map((href) => document.querySelector(href));
 
-        window.addEventListener('scroll', handleScroll);
-        handleScroll();
+        const scrollY = window.scrollY;
+        const vh = window.innerHeight;
 
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [navLinks]);
-    
-    useEffect(() => {
-        const activeLinkIndex = navLinks.findIndex(link => link.href === activeLink);
-        const activeLiRef = linkRefs.current[activeLinkIndex];
+        // Línea de activación ~40% del viewport (no cap en px: un tope de 120px hacía que en
+        // pantallas altas el <section> siguiente ya fuera visible pero su offsetTop seguía por debajo de la línea → sección equivocada).
+        const line = scrollY + vh * 0.4;
 
-        if (activeLiRef) {
-            const textSpan = activeLiRef.querySelector('span');
-            if (textSpan) {
-                const indicatorLeft = activeLiRef.offsetLeft + (activeLiRef.offsetWidth - textSpan.offsetWidth) / 2;
-                const indicatorWidth = textSpan.offsetWidth;
-
-                setIndicatorStyle({
-                    left: `${indicatorLeft}px`,
-                    width: `${indicatorWidth}px`,
-                });
+        let currentSection: string = '#home';
+        for (let i = sections.length - 1; i >= 0; i--) {
+            const section = sections[i];
+            if (!section) continue;
+            const top = getSectionDocumentTop(section);
+            if (top <= line) {
+                currentSection = SECTION_HREFS[i];
+                break;
             }
         }
+
+        setActiveLink((prev) => (prev === currentSection ? prev : currentSection));
+    }, [getSectionDocumentTop]);
+
+    useEffect(() => {
+        const onScroll = () => {
+            if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+            scrollRafRef.current = requestAnimationFrame(updateActiveFromScroll);
+        };
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+        window.addEventListener('hashchange', updateActiveFromScroll, { passive: true });
+        updateActiveFromScroll();
+        requestAnimationFrame(updateActiveFromScroll);
+
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+            window.removeEventListener('hashchange', updateActiveFromScroll);
+            cancelAnimationFrame(scrollRafRef.current);
+        };
+    }, [updateActiveFromScroll]);
+
+    useEffect(() => {
+        const updateIndicator = () => {
+            const activeLinkIndex = navLinks.findIndex((link) => link.href === activeLink);
+            const activeLiRef = linkRefs.current[activeLinkIndex];
+
+            if (activeLiRef) {
+                const textSpan = activeLiRef.querySelector('span');
+                if (textSpan) {
+                    const indicatorLeft = activeLiRef.offsetLeft + (activeLiRef.offsetWidth - textSpan.offsetWidth) / 2;
+                    const indicatorWidth = textSpan.offsetWidth;
+
+                    setIndicatorStyle({
+                        transform: `translateX(${indicatorLeft}px)`,
+                        width: indicatorWidth,
+                    });
+                }
+            }
+        };
+
+        updateIndicator();
+        window.addEventListener('resize', updateIndicator, { passive: true });
+        return () => window.removeEventListener('resize', updateIndicator);
     }, [activeLink, navLinks]);
 
     return (
@@ -105,10 +144,10 @@ const Header: React.FC<HeaderProps> = ({ t }) => {
                                 </li>
                             ))}
                             <li
-                                className="absolute bottom-0 m-0 h-[3px] bg-accent rounded-full transition-all duration-300 ease-in-out"
+                                className="absolute bottom-0 left-0 m-0 h-[3px] rounded-full bg-accent will-change-[transform,width] transition-[transform,width] duration-150 ease-out"
                                 style={indicatorStyle}
                                 aria-hidden="true"
-                            ></li>
+                            />
                         </ul>
                     </div>
                     

@@ -1,12 +1,11 @@
 import React from 'react';
-import { GithubIcon, LinkedinIcon, MailIcon, InstagramIcon } from './icons';
+import { GithubIcon, LinkedinIcon, MailIcon } from './icons';
 
 const SocialLinks: React.FC = () => {
     const socialMedia = [
         { icon: <GithubIcon />, href: 'https://github.com/Joseph210388', label: 'GitHub' },
         { icon: <LinkedinIcon />, href: 'https://es.linkedin.com/in/joseph-valderrama', label: 'LinkedIn' },
         { icon: <MailIcon />, href: 'mailto:joseph.valderrama2103@icloud.com', label: 'Email' },
-        { icon: <InstagramIcon />, href: 'https://www.instagram.com/jo_red20/', label: 'Instagram' },
     ];
 
     return (

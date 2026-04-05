@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { scrollToSectionById } from '../utils/scrollToSection';
+
+const CV_PDF_BY_LANG = {
+    es: '/pdf/CVJosephValderrama_ES.pdf',
+    en: '/pdf/CVJosephValderrama_EN.pdf',
+} as const;
 
 interface HeroProps {
+    language: keyof typeof CV_PDF_BY_LANG;
     t: {
         greeting: string;
         name: string;
@@ -11,7 +18,7 @@ interface HeroProps {
     }
 }
 
-const Hero: React.FC<HeroProps> = ({ t }) => {
+const Hero: React.FC<HeroProps> = ({ language, t }) => {
     const [subtitleIndex, setSubtitleIndex] = useState(0);
     const [displayedText, setDisplayedText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
@@ -52,14 +59,12 @@ const Hero: React.FC<HeroProps> = ({ t }) => {
     
     const handleScrollToContact = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
-        const contactSection = document.getElementById('contacto');
-        if (contactSection) {
-            contactSection.scrollIntoView({ behavior: 'smooth' });
-        }
+        window.history.replaceState(null, '', '#contacto');
+        scrollToSectionById('contacto', 'smooth');
     };
 
     return (
-        <section id="home" className="min-h-[calc(100vh-80px)]">
+        <section id="home" className="scroll-mt-24 min-h-[calc(100vh-80px)]">
             <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-24 flex items-center min-h-[calc(100vh-80px)] py-20">
                 <div className="w-full grid md:grid-cols-2 gap-10 items-center">
                     <div className="animate-fade-in-up">
@@ -75,7 +80,13 @@ const Hero: React.FC<HeroProps> = ({ t }) => {
                             {t.description}
                         </p>
                         <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
-                            <a href="https://raw.githubusercontent.com/Joseph210388/Porfolio/main/CV_Joseph_Valderrama.pdf" target="_blank" rel="noopener noreferrer" className="bg-accent text-white font-bold py-3 px-8 rounded-lg text-lg hover:bg-opacity-80 transition-all duration-300 transform hover:scale-105">
+                            <a
+                                href={CV_PDF_BY_LANG[language]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download
+                                className="bg-accent text-white font-bold py-3 px-8 rounded-lg text-lg hover:bg-opacity-80 transition-all duration-300 transform hover:scale-105"
+                            >
                                 {t.resumeButton}
                             </a>
                             <a 
@@ -89,9 +100,9 @@ const Hero: React.FC<HeroProps> = ({ t }) => {
                     </div>
                     <div className="hidden md:flex justify-center items-center animate-fade-in">
                         <div className="w-80 h-80 lg:w-96 lg:h-96 rounded-full bg-card-background border-2 border-border shadow-2xl overflow-hidden">
-                            <img 
-                                src="https://res.cloudinary.com/deqzz76ni/image/upload/v1761150438/0da1ca0f-fa20-4bdb-bb1f-001e11681756_vs2hi9.jpg" 
-                                alt="Joseph Valderrama" 
+                            <img
+                                src="/img/profile.jpeg"
+                                alt="Joseph Valderrama"
                                 className="w-full h-full object-cover transform"
                             />
                         </div>
