@@ -8,7 +8,7 @@ interface SectionProps {
 }
 
 const Section: React.FC<SectionProps> = ({ id, title, children }) => {
-    const ref = useRef<HTMLElement>(null);
+    const ref = useRef<HTMLElement | null>(null);
     // Activar la animación cuando el elemento esté a 100px de la parte inferior del viewport
     const isVisible = useOnScreen(ref, "-100px");
 

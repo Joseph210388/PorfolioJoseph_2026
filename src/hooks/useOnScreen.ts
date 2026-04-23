@@ -6,7 +6,7 @@ import { useState, useEffect, RefObject } from 'react';
  * @param rootMargin - Margen alrededor de la raíz. Se puede usar para activar la devolución de llamada antes o después.
  * @returns boolean - Verdadero si el elemento se está intersectando, falso en caso contrario.
  */
-function useOnScreen(ref: RefObject<Element>, rootMargin = '0px'): boolean {
+function useOnScreen(ref: RefObject<Element | null>, rootMargin = '0px'): boolean {
     const [isIntersecting, setIntersecting] = useState(false);
 
     useEffect(() => {
