@@ -36,6 +36,8 @@ export const en = {
         backend: 'Backend',
         databases: 'Databases',
         tools: 'Tools',
+        otherLanguages: 'Other Languages',
+        iaTools: 'IA & Tools',
     },
     projects: {
         project: 'Project',

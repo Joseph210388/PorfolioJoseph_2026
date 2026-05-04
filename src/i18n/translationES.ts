@@ -36,6 +36,8 @@ export const es = {
         backend: 'Backend',
         databases: 'Base de Datos',
         tools: 'Herramientas',
+        otherLanguages: 'Otros Lenguajes',
+        iaTools: 'IA & Tools',
     },
     projects: {
         project: 'Proyecto',
@@ -45,12 +47,13 @@ export const es = {
         sourceCode: 'Código Fuente',
         projectsData: [
             {
-                name: 'DINEO',
+                name: 'Porfolio Educadora Infantil',
                 description:
-                    'Un ERP integral para restaurantes que incluye un conjunto de funciones diseñadas para optimizar la gestión de negocios de restauración. Actualmente en fase de desarrollo.',
+                    'Aplicación web moderna desarrollada con React, TypeScript y Vite. Presenta un diseño interactivo y responsivo con animaciones fluidas, navegación intuitiva entre secciones y componentes visuales como carruseles, timeline de experiencia e iconos animados. Optimizado para rendimiento con carga progresiva de fuentes e imágenes.',
                 image:
-                    'data:image/svg+xml,%3Csvg width="400" height="200" xmlns="http://www.w3.org/2000/svg"%3E%3Cdefs%3E%3Cpattern id="p" width="10" height="10" patternUnits="userSpaceOnUse"%3E%3Ccircle cx="5" cy="5" r="1" fill="%238892b0" opacity="0.2"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width="100%" height="100%" fill="var(--color-card-background)"/%3E%3Crect width="100%" height="100%" fill="url(%23p)"/%3E%3Ctext x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="\'Inter\', sans-serif" font-size="24" font-weight="900" letter-spacing="0.1em" fill="var(--color-text-muted)"%3EPRÓXIMAMENTE%3C/text%3E%3C/svg%3E',
-                tags: ['React', 'Nest.js', 'React Native', 'Tailwind CSS', 'SQL'],
+                    'https://res.cloudinary.com/deqzz76ni/image/upload/v1777878157/Porfolio_Educadora_Infantil_routga.png',
+                link: 'https://alejandrallorente.vercel.app/',
+                tags: ['React', 'TypeScript', 'Tailwind CSS', 'Vercel', 'Node.js'],
             },
             {
                 name: 'Porfolio Profesional',

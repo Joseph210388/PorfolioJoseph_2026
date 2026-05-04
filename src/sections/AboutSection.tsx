@@ -6,6 +6,8 @@ import {
     backendTechnologies,
     databaseTechnologies,
     toolsTechnologies,
+    otherLanguagesTechnologies,
+    iaToolsTechnologies,
 } from '../data/technologies';
 
 type AboutCopy = Translation['about'];
@@ -30,6 +32,14 @@ export const AboutContent: React.FC<{ t: AboutCopy }> = ({ t }) => (
             <div>
                 <h3 className="text-2xl font-bold text-text-primary mb-4 text-center">{t.tools}</h3>
                 <TechnologyCarousel technologies={toolsTechnologies} />
+            </div>
+            <div>
+                <h3 className="text-2xl font-bold text-text-primary mb-4 text-center">{t.otherLanguages}</h3>
+                <TechnologyCarousel technologies={otherLanguagesTechnologies} />
+            </div>
+            <div>
+                <h3 className="text-2xl font-bold text-text-primary mb-4 text-center">{t.iaTools}</h3>
+                <TechnologyCarousel technologies={iaToolsTechnologies} />
             </div>
         </div>
     </div>

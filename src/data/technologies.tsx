@@ -24,6 +24,15 @@ import {
     ViteIcon,
     VercelIcon,
     GithubToolIcon,
+    JavaIcon,
+    PythonIcon,
+    PhpIcon,
+    ClaudeAIIcon,
+    GitHubCopilotIcon,
+    GeminiIcon,
+    OllamaIcon,
+    GoogleAntigravityIcon,
+    CursorIcon,
 } from '../components/icons';
 
 const iconSize = 'w-20 h-20';
@@ -63,4 +72,19 @@ export const toolsTechnologies = [
     { name: 'Webpack', icon: <WebpackIcon className={iconMutedColor} /> },
     { name: 'Vite', icon: <ViteIcon className={iconMutedColor} /> },
     { name: 'Vercel', icon: <VercelIcon className={iconMutedColor} /> },
+    { name: 'Google Antigravity', icon: <GoogleAntigravityIcon className={iconMutedColor} /> },
+    { name: 'Cursor', icon: <CursorIcon className={iconMutedColor} /> },
+];
+
+export const otherLanguagesTechnologies = [
+    { name: 'Java', icon: <JavaIcon className={iconSize} /> },
+    { name: 'Python', icon: <PythonIcon className={iconSize} /> },
+    { name: 'PHP', icon: <PhpIcon className={iconSize} /> },
+];
+
+export const iaToolsTechnologies = [
+    { name: 'Claude Code', icon: <ClaudeAIIcon className={iconSize} /> },
+    { name: 'GitHub Copilot', icon: <GitHubCopilotIcon className={iconSize} /> },
+    { name: 'Gemini', icon: <GeminiIcon className={iconSize} /> },
+    { name: 'Ollama', icon: <OllamaIcon className={iconSize} /> },
 ];
