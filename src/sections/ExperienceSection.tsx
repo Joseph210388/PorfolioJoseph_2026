@@ -1,32 +1,17 @@
 import React, { useState, useRef } from 'react';
 import useOnScreen from '../hooks/useOnScreen';
-import {
-    AngularIcon,
-    BootstrapIcon,
-    JavaScriptIcon,
-    MySqlIcon,
-    SqlIcon,
-    TypeScriptIcon,
-    NestJsIcon,
-    NodeJsIcon,
-    SqlServerIcon,
-} from '../components/icons';
 import { useWorkExperience, type Locale } from '../hooks/useSupabaseData';
 import { translations } from '../i18n/translations';
 
 type ExperienceCopy = typeof translations['es']['experience'];
 type Study = ExperienceCopy['studiesData'][number];
 
-type WorkJobBase = {
+type WorkJob = {
     title: string;
     company: string;
     date: string;
     tasks: string[];
     tech?: string;
-    icons?: string[];
-};
-type JobWithIcons = Omit<WorkJobBase, 'icons'> & {
-    icons: { name: string; component: React.ReactElement }[];
 };
 
 const formatDateRange = (dateStart: string, dateEnd: string | null, locale: Locale) => {
@@ -37,7 +22,7 @@ const formatDateRange = (dateStart: string, dateEnd: string | null, locale: Loca
     return `${start} – ${end}`;
 };
 
-const ExperienceItem: React.FC<{ item: JobWithIcons; index: number }> = ({ item, index }) => {
+const ExperienceItem: React.FC<{ item: WorkJob; index: number }> = ({ item, index }) => {
     const ref = useRef<HTMLDivElement>(null);
     const isVisible = useOnScreen(ref, '-100px');
 
@@ -57,21 +42,12 @@ const ExperienceItem: React.FC<{ item: JobWithIcons; index: number }> = ({ item,
                     <li key={i}>{task}</li>
                 ))}
             </ul>
-            {item.icons.length > 0 && (
-                <div className="flex items-center gap-4 mt-6">
-                    {item.icons.map((icon) => (
-                        <div key={icon.name} title={icon.name} className="transform hover:scale-110 transition-transform duration-200">
-                            {icon.component}
-                        </div>
-                    ))}
-                </div>
-            )}
             {item.tech && <p className="text-sm text-text-muted mt-4 font-mono">{item.tech}</p>}
         </div>
     );
 };
 
-const ExperienceContent: React.FC<{ jobs: JobWithIcons[] }> = ({ jobs }) => (
+const ExperienceContent: React.FC<{ jobs: WorkJob[] }> = ({ jobs }) => (
     <div className="space-y-8">
         {jobs.map((job, index) => (
             <ExperienceItem item={job} index={index} key={`${job.company}-${index}`} />
@@ -106,38 +82,6 @@ const StudiesContent: React.FC<{ studies: Study[] }> = ({ studies }) => (
     </div>
 );
 
-function mapWorkIcons(job: WorkJobBase): JobWithIcons {
-    return {
-        ...job,
-        icons: (job.icons || [])
-            .map((iconName) => {
-                switch (iconName) {
-                    case 'Angular':
-                        return { name: 'Angular', component: <AngularIcon className="w-7 h-7" /> };
-                    case 'MySQL':
-                        return { name: 'MySQL', component: <MySqlIcon className="w-7 h-7" /> };
-                    case 'Bootstrap':
-                        return { name: 'Bootstrap', component: <BootstrapIcon className="w-7 h-7" /> };
-                    case 'JavaScript':
-                        return { name: 'JavaScript', component: <JavaScriptIcon className="w-7 h-7" /> };
-                    case 'SQL':
-                        return { name: 'SQL', component: <SqlIcon className="w-7 h-7 text-text-muted" /> };
-                    case 'TypeScript':
-                        return { name: 'TypeScript', component: <TypeScriptIcon className="w-7 h-7" /> };
-                    case 'NestJS':
-                        return { name: 'NestJS', component: <NestJsIcon className="w-7 h-7" /> };
-                    case 'Node.js':
-                        return { name: 'Node.js', component: <NodeJsIcon className="w-7 h-7" /> };
-                    case 'SQL Server':
-                        return { name: 'SQL Server', component: <SqlServerIcon className="w-7 h-7" /> };
-                    default:
-                        return null;
-                }
-            })
-            .filter((x): x is NonNullable<typeof x> => x != null),
-    };
-}
-
 export const ExperienceTabs: React.FC<{ locale: Locale }> = ({ locale }) => {
     const t = translations[locale].experience;
     const [activeTab, setActiveTab] = useState('laboral');
@@ -156,7 +100,6 @@ export const ExperienceTabs: React.FC<{ locale: Locale }> = ({ locale }) => {
               date: formatDateRange(exp.date_start, exp.date_end, locale),
               tasks: exp.translations?.tasks || [],
               tech: '',
-              icons: [],
           }))
         : [];
 
@@ -189,7 +132,7 @@ export const ExperienceTabs: React.FC<{ locale: Locale }> = ({ locale }) => {
             <div>
                 {activeTab === 'laboral' && (
                     <div id="panel-laboral" role="tabpanel" tabIndex={0} aria-labelledby="tab-laboral">
-                        <ExperienceContent jobs={dataExperience.map(mapWorkIcons)} />
+                        <ExperienceContent jobs={dataExperience} />
                     </div>
                 )}
                 {activeTab === 'estudios' && (

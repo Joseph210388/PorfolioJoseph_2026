@@ -83,7 +83,9 @@ export const useProjects = (locale: Locale) => {
           .select('*')
           .order('order', { ascending: true });
 
-        console.debug('Supabase projects response', { projectsData, projectsError });
+        if (import.meta.env.DEV) {
+          console.debug('Supabase projects response', { projectsData, projectsError });
+        }
 
         if (projectsError) throw projectsError;
 
