@@ -11,15 +11,30 @@ import {
     NodeJsIcon,
     SqlServerIcon,
 } from '../components/icons';
-import type { Translation } from '../i18n/translations';
+import { useWorkExperience, type Locale } from '../hooks/useSupabaseData';
+import { translations } from '../i18n/translations';
 
-type ExperienceCopy = Translation['experience'];
-
-type WorkJob = ExperienceCopy['workExperience'][number];
+type ExperienceCopy = typeof translations['es']['experience'];
 type Study = ExperienceCopy['studiesData'][number];
 
-type JobWithIcons = Omit<WorkJob, 'icons'> & {
+type WorkJobBase = {
+    title: string;
+    company: string;
+    date: string;
+    tasks: string[];
+    tech?: string;
+    icons?: string[];
+};
+type JobWithIcons = Omit<WorkJobBase, 'icons'> & {
     icons: { name: string; component: React.ReactElement }[];
+};
+
+const formatDateRange = (dateStart: string, dateEnd: string | null, locale: Locale) => {
+    const formatOptions: Intl.DateTimeFormatOptions = { month: 'short', year: 'numeric' };
+    const formatter = new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-US', formatOptions);
+    const start = formatter.format(new Date(dateStart)).toUpperCase();
+    const end = dateEnd ? formatter.format(new Date(dateEnd)).toUpperCase() : locale === 'es' ? 'ACTUALIDAD' : 'PRESENT';
+    return `${start} – ${end}`;
 };
 
 const ExperienceItem: React.FC<{ item: JobWithIcons; index: number }> = ({ item, index }) => {
@@ -42,14 +57,16 @@ const ExperienceItem: React.FC<{ item: JobWithIcons; index: number }> = ({ item,
                     <li key={i}>{task}</li>
                 ))}
             </ul>
-            <div className="flex items-center gap-4 mt-6">
-                {item.icons.map((icon) => (
-                    <div key={icon.name} title={icon.name} className="transform hover:scale-110 transition-transform duration-200">
-                        {icon.component}
-                    </div>
-                ))}
-            </div>
-            <p className="text-sm text-text-muted mt-4 font-mono">{item.tech}</p>
+            {item.icons.length > 0 && (
+                <div className="flex items-center gap-4 mt-6">
+                    {item.icons.map((icon) => (
+                        <div key={icon.name} title={icon.name} className="transform hover:scale-110 transition-transform duration-200">
+                            {icon.component}
+                        </div>
+                    ))}
+                </div>
+            )}
+            {item.tech && <p className="text-sm text-text-muted mt-4 font-mono">{item.tech}</p>}
         </div>
     );
 };
@@ -57,7 +74,7 @@ const ExperienceItem: React.FC<{ item: JobWithIcons; index: number }> = ({ item,
 const ExperienceContent: React.FC<{ jobs: JobWithIcons[] }> = ({ jobs }) => (
     <div className="space-y-8">
         {jobs.map((job, index) => (
-            <ExperienceItem item={job} index={index} key={index} />
+            <ExperienceItem item={job} index={index} key={`${job.company}-${index}`} />
         ))}
     </div>
 );
@@ -84,15 +101,15 @@ const StudyItem: React.FC<{ item: Study; index: number }> = ({ item, index }) =>
 const StudiesContent: React.FC<{ studies: Study[] }> = ({ studies }) => (
     <div className="space-y-8">
         {studies.map((study, index) => (
-            <StudyItem item={study} index={index} key={index} />
+            <StudyItem item={study} index={index} key={`${study.title}-${index}`} />
         ))}
     </div>
 );
 
-function mapWorkIcons(job: WorkJob): JobWithIcons {
+function mapWorkIcons(job: WorkJobBase): JobWithIcons {
     return {
         ...job,
-        icons: job.icons
+        icons: (job.icons || [])
             .map((iconName) => {
                 switch (iconName) {
                     case 'Angular':
@@ -121,8 +138,10 @@ function mapWorkIcons(job: WorkJob): JobWithIcons {
     };
 }
 
-export const ExperienceTabs: React.FC<{ t: ExperienceCopy }> = ({ t }) => {
+export const ExperienceTabs: React.FC<{ locale: Locale }> = ({ locale }) => {
+    const t = translations[locale].experience;
     const [activeTab, setActiveTab] = useState('laboral');
+    const { experience, loading, error } = useWorkExperience(locale);
 
     const tabButtonClasses =
         'px-6 py-2 rounded-t-lg text-lg font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-accent';
@@ -130,7 +149,16 @@ export const ExperienceTabs: React.FC<{ t: ExperienceCopy }> = ({ t }) => {
     const inactiveTabClasses =
         'bg-transparent text-text-muted hover:bg-gray-500/10 hover:text-text-secondary transform hover:-translate-y-1';
 
-    const workExperience = t.workExperience.map(mapWorkIcons);
+    const dataExperience = experience.length
+        ? experience.map((exp) => ({
+              title: exp.translations?.title ?? '',
+              company: exp.company,
+              date: formatDateRange(exp.date_start, exp.date_end, locale),
+              tasks: exp.translations?.tasks || [],
+              tech: '',
+              icons: [],
+          }))
+        : [];
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -156,10 +184,12 @@ export const ExperienceTabs: React.FC<{ t: ExperienceCopy }> = ({ t }) => {
                     {t.studies}
                 </button>
             </div>
+            {loading && <p className="text-text-secondary mb-6">{locale === 'es' ? 'Cargando experiencia...' : 'Loading experience...'}</p>}
+            {error && <p className="text-red-500 mb-6">{error}</p>}
             <div>
                 {activeTab === 'laboral' && (
                     <div id="panel-laboral" role="tabpanel" tabIndex={0} aria-labelledby="tab-laboral">
-                        <ExperienceContent jobs={workExperience} />
+                        <ExperienceContent jobs={dataExperience.map(mapWorkIcons)} />
                     </div>
                 )}
                 {activeTab === 'estudios' && (

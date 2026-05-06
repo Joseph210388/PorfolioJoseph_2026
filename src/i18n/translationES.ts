@@ -1,3 +1,5 @@
+import { title } from "process";
+
 export const es = {
     header: {
         home: 'Home',
@@ -45,95 +47,17 @@ export const es = {
         description: 'Una breve descripción del proyecto, las tecnologías utilizadas y el papel que desempeñé.',
         viewProject: 'Ver Proyecto',
         sourceCode: 'Código Fuente',
-        projectsData: [
-            {
-                name: 'Porfolio Educadora Infantil',
-                description:
-                    'Aplicación web moderna desarrollada con React, TypeScript y Vite. Presenta un diseño interactivo y responsivo con animaciones fluidas, navegación intuitiva entre secciones y componentes visuales como carruseles, timeline de experiencia e iconos animados. Optimizado para rendimiento con carga progresiva de fuentes e imágenes.',
-                image:
-                    'https://res.cloudinary.com/deqzz76ni/image/upload/v1777878157/Porfolio_Educadora_Infantil_routga.png',
-                link: 'https://alejandrallorente.vercel.app/',
-                tags: ['React', 'TypeScript', 'Tailwind CSS', 'Vercel', 'Node.js'],
-            },
-            {
-                name: 'Porfolio Profesional',
-                description:
-                    'Este es el portafolio profesional que estás viendo. Creado para presentar mi trabajo y habilidades como desarrollador web, cuenta con un diseño moderno, animado y totalmente responsivo.',
-                image: 'https://res.cloudinary.com/deqzz76ni/image/upload/v1761154158/cbea39e0-6dbe-4247-b6e4-bf9433f8a253.png',
-                tags: ['React', 'TypeScript', 'Tailwind CSS', 'Vercel'],
-            },
-            {
-                name: 'EatTime',
-                description:
-                    'Plataforma moderna para reservas en restaurantes, proyecto final del CFGS DAW (AFA Formación | Unendo), reconocido con el premio al mejor proyecto de curso. Permite reservar mesas con facilidad y mejora la experiencia del comensal.',
-                image: 'https://res.cloudinary.com/deqzz76ni/image/upload/v1761152815/19129c03-d59f-4fcc-8190-3725f06da55b.png',
-                link: 'https://eattime.vercel.app',
-                github: 'https://github.com/Joseph210388/eattime',
-                tags: ['React', 'Next.js', 'Tailwind CSS', 'TypeScript', 'MongoDB'],
-            },
-            {
-                name: 'API Pokémon',
-                description:
-                    'Una API de Pokémon creada en mi primer año de estudios, utilizando HTML, CSS y JavaScript puros. Desplegada en Vercel para una disponibilidad global.',
-                image: 'https://res.cloudinary.com/deqzz76ni/image/upload/v1761153126/839462e3-175e-4313-8c0b-8a5d43d90d38.png',
-                link: 'https://pokedex-blond-tau.vercel.app/',
-                github: 'https://github.com/Joseph210388/pokecartas',
-                tags: ['HTML', 'CSS', 'JavaScript', 'Vercel'],
-            },
-            {
-                name: 'Porfolio 2023',
-                description:
-                    'Este fue mi primer proyecto personal en el grado superior. Fue desarrollado con HTML, JS y CSS y deplegado con Vercel.',
-                image: 'https://res.cloudinary.com/deqzz76ni/image/upload/v1761154321/0b02bff1-e159-471f-b0b0-283cb6a55fff.png',
-                link: 'https://porfolio-lsm9xxni5-joseph210388.vercel.app/',
-                github: 'https://github.com/Joseph210388/Porfolio',
-                tags: ['HTML', 'CSS', 'JavaScript', 'Vercel'],
-            },
-        ],
     },
     experience: {
         tabsLabel: 'Pestañas de Experiencia',
         work: 'Laboral',
         studies: 'Estudios',
-        workExperience: [
-            {
-                title: 'DESARROLLADOR WEB JUNIOR FRONT/BACK-END',
-                company: 'MOBENTIS',
-                date: 'ENERO 2025 – ACTUALIDAD • ASTURIAS, ESPAÑA',
-                tasks: [
-                    'Lideré el análisis y desarrollo de una herramienta interna de gestión de rendimiento (Performance Management), optimizando el seguimiento de objetivos y métricas operativas.',
-                    'Implementé módulos de lógica transaccional compleja, gestionando el procesamiento de datos para el cálculo de variables de rendimiento y cumplimiento.',
-                    'Coordiné requerimientos técnicos con stakeholders, encargándome de la planificación de tareas de otros miembros del equipo técnico.',
-                    'Gestión de persistencia de datos mediante la creación de consultas avanzadas en MySQL y SQL Server.',
-                ],
-                tech: 'Angular • SQL • NestJS • Bootstrap • JS • Microsoft SQL Server • TypeScript',
-                icons: ['Angular', 'NestJS', 'Bootstrap', 'JavaScript', 'TypeScript', 'MySQL', 'SQL Server'],
-            },
-            {
-                title: 'DESARROLLADOR WEB JUNIOR FRONT/BACK-END (CONTRATO DE PRÁCTICAS)',
-                company: 'MOBENTIS',
-                date: 'JULIO 2024 – ENERO 2025 • ASTURIAS, ESPAÑA',
-                tasks: [
-                    'Ejecuté la optimización de la capa visual y de experiencia de usuario (UX) para plataformas de logística y distribución de alta disponibilidad.',
-                    'Resolví incidencias críticas en el flujo de datos entre el Frontend y el Backend, mejorando la estabilidad de la aplicación.',
-                    'Desarrollé interfaces dinámicas y reutilizables con Angular y TypeScript, reduciendo tiempos de carga y mejorando la experiencia de usuario en plataformas de logística.',
-                ],
-                tech: 'Angular • TypeScript',
-                icons: ['Angular', 'TypeScript'],
-            },
-            {
-                title: 'ESTUDIANTE EN PRÁCTICAS',
-                company: 'MOBENTIS',
-                date: 'ABRIL 2024 – JUNIO 2024 • ASTURIAS, ESPAÑA',
-                tasks: [
-                    'Participé en el ciclo de vida de desarrollo de software, apoyando en el diseño y construcción de componentes Full Stack.',
-                    'Me integré al stack tecnológico de la empresa en un tiempo reducido, contribuyendo activamente al desarrollo de componentes Full Stack desde las primeras semanas.',
-                ],
-                tech: 'Angular • TypeScript',
-                icons: ['Angular', 'TypeScript'],
-            },
-        ],
         studiesData: [
+            {
+                title: 'Certificación Python',
+                institution: 'SANTANDER OPEN ACADEMY',
+                date: 'ABRIL 2026',
+            },
             {
                 title: 'CFGS DESARROLLO DE APLICACIONES WEB (DAW)',
                 institution: 'AFA FORMACIÓN | UNENDO',

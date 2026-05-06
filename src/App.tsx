@@ -114,10 +114,10 @@ const App: React.FC = () => {
                         <AboutContent t={t.about} />
                     </Section>
                     <Section id="proyectos" title={t.sectionTitles.projects}>
-                        <ProjectsContent t={t.projects} />
+                        <ProjectsContent locale={language} />
                     </Section>
                     <Section id="experiencia" title={t.sectionTitles.experience}>
-                        <ExperienceTabs t={t.experience} />
+                        <ExperienceTabs locale={language} />
                     </Section>
                     <Section id="contacto" title={t.sectionTitles.contact}>
                         <ContactForm t={t.contact} />

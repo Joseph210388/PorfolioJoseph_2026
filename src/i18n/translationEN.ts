@@ -44,95 +44,17 @@ export const en = {
         projectName: 'Project Name',
         description: 'A short summary of the project, the technologies used and the role I played.',
         viewProject: 'View Project',
-        sourceCode: 'Source Code',
-        projectsData: [
-            {
-                name: 'DINEO',
-                description:
-                    'A full ERP for restaurants, with a set of features to help manage food service businesses. Currently in development.',
-                image:
-                    'data:image/svg+xml,%3Csvg width="400" height="200" xmlns="http://www.w3.org/2000/svg"%3E%3Cdefs%3E%3Cpattern id="p" width="10" height="10" patternUnits="userSpaceOnUse"%3E%3Ccircle cx="5" cy="5" r="1" fill="%238892b0" opacity="0.2"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width="100%" height="100%" fill="var(--color-card-background)"/%3E%3Crect width="100%" height="100%" fill="url(%23p)"/%3E%3Ctext x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="\'Inter\', sans-serif" font-size="24" font-weight="900" letter-spacing="0.1em" fill="var(--color-text-muted)"%3ECOMING SOON%3C/text%3E%3C/svg%3E',
-                tags: ['React', 'Nest.js', 'React Native', 'Tailwind CSS', 'SQL'],
-            },
-            {
-                name: 'Professional Portfolio',
-                description:
-                    'The portfolio you are looking at right now. I built it to show my work and skills as a web developer, with a modern layout, subtle animations and fully responsive design.',
-                image: 'https://res.cloudinary.com/deqzz76ni/image/upload/v1761154158/cbea39e0-6dbe-4247-b6e4-bf9433f8a253.png',
-                tags: ['React', 'TypeScript', 'Tailwind CSS', 'Vercel'],
-            },
-            {
-                name: 'EatTime',
-                description:
-                    'A restaurant reservation platform and my final project for the Web Development HND at AFA Formación | Unendo. It won best final project of the year. It makes booking a table simple and improves the experience for guests.',
-                image: 'https://res.cloudinary.com/deqzz76ni/image/upload/v1761152815/19129c03-d59f-4fcc-8190-3725f06da55b.png',
-                link: 'https://eattime.vercel.app',
-                github: 'https://github.com/Joseph210388/eattime',
-                tags: ['React', 'Next.js', 'Tailwind CSS', 'TypeScript', 'MongoDB'],
-            },
-            {
-                name: 'Pokémon API',
-                description:
-                    'A Pokémon API project from my first year of studies, built with plain HTML, CSS and JavaScript. Deployed on Vercel.',
-                image: 'https://res.cloudinary.com/deqzz76ni/image/upload/v1761153126/839462e3-175e-4313-8c0b-8a5d43d90d38.png',
-                link: 'https://pokedex-blond-tau.vercel.app/',
-                github: 'https://github.com/Joseph210388/pokecartas',
-                tags: ['HTML', 'CSS', 'JavaScript', 'Vercel'],
-            },
-            {
-                name: 'Portfolio 2023',
-                description:
-                    'My first personal project during my higher degree, built with HTML, JS and CSS and deployed on Vercel.',
-                image: 'https://res.cloudinary.com/deqzz76ni/image/upload/v1761154321/0b02bff1-e159-471f-b0b0-283cb6a55fff.png',
-                link: 'https://porfolio-lsm9xxni5-joseph210388.vercel.app/',
-                github: 'https://github.com/Joseph210388/Porfolio',
-                tags: ['HTML', 'CSS', 'JavaScript', 'Vercel'],
-            },
-        ],
-    },
+        sourceCode: 'Source Code',    },
     experience: {
         tabsLabel: 'Experience Tabs',
         work: 'Work',
         studies: 'Studies',
-        workExperience: [
-            {
-                title: 'JUNIOR WEB DEVELOPER FRONT/BACK-END',
-                company: 'MOBENTIS',
-                date: 'JANUARY 2025 – PRESENT • ASTURIAS, SPAIN',
-                tasks: [
-                    'Led the analysis and development of an internal Performance Management tool, improving how goals and operational metrics are tracked.',
-                    'Built complex transactional logic modules to handle data processing for performance and compliance calculations.',
-                    'Worked with stakeholders to gather technical requirements and took part in task planning for other members of the team.',
-                    'Wrote advanced queries in MySQL and SQL Server to manage data storage.',
-                ],
-                tech: 'Angular • SQL • NestJS • Bootstrap • JavaScript • Microsoft SQL Server • TypeScript',
-                icons: ['Angular', 'NestJS', 'Bootstrap', 'JavaScript', 'TypeScript', 'MySQL', 'SQL Server'],
-            },
-            {
-                title: 'JUNIOR WEB DEVELOPER FRONT/BACK-END (INTERNSHIP CONTRACT)',
-                company: 'MOBENTIS',
-                date: 'JULY 2024 – JANUARY 2025 • ASTURIAS, SPAIN',
-                tasks: [
-                    'Improved the visual side and user experience of logistics and distribution platforms.',
-                    'Fixed data flow problems between the frontend and backend, making the apps more stable.',
-                    'Built dynamic and reusable components with Angular and TypeScript, cutting load times and improving the experience on logistics platforms.',
-                ],
-                tech: 'Angular • TypeScript',
-                icons: ['Angular', 'TypeScript'],
-            },
-            {
-                title: 'INTERN',
-                company: 'MOBENTIS',
-                date: 'APRIL 2024 – JUNE 2024 • ASTURIAS, SPAIN',
-                tasks: [
-                    'Took part in the software development process, helping design and build full-stack components.',
-                    "Got up to speed with the company's tech stack quickly and started contributing to full-stack development from the first few weeks.",
-                ],
-                tech: 'Angular • TypeScript',
-                icons: ['Angular', 'TypeScript'],
-            },
-        ],
         studiesData: [
+            {
+                title: 'Python Certification',
+                institution: 'SANTANDER OPEN ACADEMY',
+                date: 'APRIL 2026',
+            },
             {
                 title: 'HND IN WEB APPLICATION DEVELOPMENT (DAW)',
                 institution: 'AFA FORMACIÓN | UNENDO',
