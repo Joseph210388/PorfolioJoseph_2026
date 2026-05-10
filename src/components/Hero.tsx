@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { scrollToSectionById } from '../utils/scrollToSection';
+import { toBrowserPath } from '../utils/sectionRoutes';
 
 const CV_PDF_BY_LANG = {
     es: '/pdf/CVJosephValderrama_ES.pdf',
@@ -73,7 +74,7 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
     
     const handleScrollToContact = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
-        window.history.replaceState(null, '', '#contacto');
+        window.history.replaceState(null, '', toBrowserPath('/contacto'));
         scrollToSectionById('contacto', 'smooth');
     };
 
@@ -116,8 +117,8 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
                             >
                                 {t.resumeButton}
                             </a>
-                            <a 
-                                href="#contacto" 
+                            <a
+                                href={toBrowserPath('/contacto')}
                                 onClick={handleScrollToContact}
                                 className="bg-transparent border-2 border-text-muted text-text-secondary font-bold py-3 px-8 rounded-lg text-lg hover:bg-gray-500/20 hover:border-text-secondary transition-all duration-300 transform hover:scale-105 cursor-pointer"
                             >

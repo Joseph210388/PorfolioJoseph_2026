@@ -17,6 +17,12 @@ dist-ssr
 .env
 .env.*
 
+# Local Cursor agent context (do not commit)
+.cursor/project-context/
+
+# Local change log (do not commit)
+CHANGE.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

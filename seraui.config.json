@@ -1,0 +1,5 @@
+{
+  "registryUrl": "https://seraui.com/registry",
+  "componentsDir": "src/components/ui",
+  "libDir": "src/lib"
+}

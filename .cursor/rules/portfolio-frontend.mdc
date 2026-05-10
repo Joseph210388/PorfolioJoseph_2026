@@ -1,0 +1,233 @@
+---
+description: Frontend design rule for a minimalist portfolio using React + Vite + Tailwind CSS + SeraUI
+globs: **/*.{tsx,jsx,css}
+alwaysApply: true
+---
+
+# Frontend Design — Minimalist Portfolio
+
+You are a frontend design expert specializing in minimalist, Apple-inspired interfaces. This project is a **personal portfolio** built with React + Vite, Tailwind CSS, and SeraUI components. Every UI decision must feel intentional, refined, and consistent.
+
+---
+
+## Design Philosophy
+
+- **Less is more.** Remove anything decorative that doesn't add meaning.
+- **Whitespace is a design element**, not empty space. Use it generously to create breathing room.
+- Inspired by **Apple.com** and **Linear.app**: precise typography, restrained color, smooth motion.
+- Every component should feel like it belongs to a coherent system, not assembled from parts.
+
+---
+
+## Color & Theme
+
+La paleta **no** es genérica tipo `zinc` / `slate` / `violet`: está definida en **`src/index.css`** con variables CSS y expuesta en Tailwind como tokens en `tailwind.config.js`.
+
+- **Claro:** fondo casi blanco (`--color-background` #F8F9FA), tarjetas blancas (`--color-card-background`), texto principal oscuro (`--color-text-primary` #212529), texto secundario/muted en grises #495057 / #6C757D, bordes suaves (`--color-border` #DEE2E6).
+- **Oscuro (“azul marino”):** fondo profundo (`--color-background` #0F1C3A), tarjetas tono marino (`--color-card-background` #112240), texto claro (`--color-text-primary` #F8F9FA), secundarios tipo gris azulado (`--color-text-secondary`, `--color-text-muted` tipo #8892b0), bordes (`--color-border` #495057).
+- **Acento (“rojo” / rosa coral):** un solo acento (`--color-accent` **#EC4869**) vía clase Tailwind **`text-accent`**, **`bg-accent`**, **`border-accent`**, **`ring-accent`**, etc. — enlaces activos, CTAs, focos, badges importantes. No repartir otros “brand colors” fuera de este sistema.
+- Los blobs decorativos usan tintes suaves en CSS (`--color-blob-*`); no copiar esos púrpura/azul/rojo sueltos como color principal de UI.
+
+**Tailwind semántico del proyecto (usar estos nombres, no paletas ajenas):**  
+`background`, `card-background`, `text-primary`, `text-secondary`, `text-muted`, `accent`, `border`, `header-bg`.
+
+El tema oscuro se activa con **`[data-theme='dark']`** en el documento; Tailwind está configurado con `darkMode: ['class', '[data-theme="dark"]']`. Donde un elemento no herede bien el contraste, añadir variantes `dark:` alineadas con los mismos tokens (p. ej. `dark:bg-card-background`), no introducir `zinc-950` u otros grises ajenos.
+
+```tsx
+// ✅ Correcto — tokens del proyecto (variables resuelven claro/oscuro)
+<div className="bg-card-background text-text-primary border border-border">
+
+// ❌ Incorrecto — paleta ajena al portfolio
+<div className="bg-zinc-50 dark:bg-zinc-950 text-violet-600">
+```
+
+---
+
+## Typography
+
+- **Tipografía única:** el proyecto usa **Inter** (Google Fonts en `index.css`).
+- Escala razonable: `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`, `text-3xl`, `text-4xl`, `text-5xl`.
+- **Títulos:** `font-semibold` o `font-bold`, `tracking-tight` cuando aplique.
+- **Cuerpo:** `font-normal`, `leading-relaxed` si el bloque es largo.
+- **Etiquetas / captions:** `text-sm` + **`text-text-muted`** (no `zinc-500`).
+- No mezclar más de dos pesos en la misma vista sin motivo.
+- Párrafos legibles: `max-w-prose` o `max-w-xl`.
+
+```tsx
+// ✅ Correcto
+<h1 className="text-4xl font-bold tracking-tight text-text-primary">
+<p className="text-base leading-relaxed text-text-secondary max-w-prose">
+
+// ❌ Incorrecto
+<h1 className="text-zinc-900 dark:text-zinc-100">
+```
+
+---
+
+## Spacing & Layout
+
+- **Grid base 8px** — espaciados en escala Tailwind (múltiplos coherentes).
+- Secciones: `py-20`–`py-32` (no menos de `py-16` salvo excepción justificada).
+- Contenido: `max-w-5xl` / `max-w-4xl`, centrado `mx-auto` y padding horizontal `px-4 sm:px-6` (o el patrón que ya use el layout principal).
+- Agrupar con `gap-2`–`gap-4`; separar bloques con `gap-8`–`gap-16`.
+- **Layout principal:** preferir `grid` / `flex`. El **`position: absolute`** reservado a overlays (carga, modales, anclajes UI), no para columnas del documento.
+
+---
+
+## Borders & Radius
+
+- Estética redondeada: **`rounded-2xl`** en contenedores y tarjetas, **`rounded-xl`** en piezas más pequeñas, **`rounded-full`** en pills y avatares.
+- Evitar **`rounded`** (4px) y **`rounded-md`** (6px)** como estética por defecto del portfolio.
+- Bordes discretos: **`border border-border`**. Hover: `hover:border-accent/50` o tonos del mismo token, no bordes gruesos decorativos.
+- Listas: `divide-y divide-border` cuando encaje con el sistema.
+
+```tsx
+// ✅ Correcto
+<div className="rounded-2xl border border-border bg-card-background p-6">
+
+// ❌ Incorrecto
+<div className="rounded border-2 border-gray-400 p-4">
+```
+
+---
+
+## Animations & Motion
+
+Usar **Framer Motion** para animaciones de entrada y micro-interacciones; deben sentirse fluidas y no recargadas.
+
+### Principios
+- Duración: `0.3s–0.5s` entradas, `0.15s–0.2s` micro-interacciones.
+- Easing: `[0.25, 0.1, 0.25, 1]` o `"easeOut"`. Evitar `linear` en transiciones visibles.
+- Preferir animar **`transform`** y **`opacity`** (no `width`/`height`/`margin` para rendimiento).
+- Respetar **`prefers-reduced-motion`** (`useReducedMotion` o equivalente).
+
+### Fade-in al montar
+```tsx
+import { motion } from 'framer-motion'
+
+const fadeIn = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.4, ease: 'easeOut' }
+}
+
+<motion.div {...fadeIn}>
+  {/* content */}
+</motion.div>
+```
+
+### Scroll reveal
+```tsx
+import { motion, useInView } from 'framer-motion'
+
+const ref = useRef(null)
+const isInView = useInView(ref, { once: true, margin: '-80px' })
+
+<motion.section
+  ref={ref}
+  initial={{ opacity: 0, y: 24 }}
+  animate={isInView ? { opacity: 1, y: 0 } : {}}
+  transition={{ duration: 0.5, ease: 'easeOut' }}
+>
+```
+
+### Hover en tarjetas / botones
+```tsx
+<motion.div
+  whileHover={{ y: -2, transition: { duration: 0.2 } }}
+  className="group rounded-2xl border border-border bg-card-background ..."
+/>
+
+<motion.button
+  whileHover={{ scale: 1.02 }}
+  whileTap={{ scale: 0.98 }}
+  transition={{ duration: 0.15 }}
+>
+```
+
+### Stagger en listas
+```tsx
+const container = {
+  animate: { transition: { staggerChildren: 0.08 } }
+}
+
+const item = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }
+}
+
+<motion.ul variants={container} initial="initial" animate="animate">
+  {items.map(i => (
+    <motion.li key={i.id} variants={item}>...</motion.li>
+  ))}
+</motion.ul>
+```
+
+---
+
+## SeraUI Components
+
+- Priorizar **SeraUI** como base antes de inventar primitivos duplicados.
+- No pelear con estilos internos del componente: envolver y ajustar en el wrapper con tokens del proyecto (`border-border`, `rounded-2xl`, etc.).
+- Si la API de SeraUI no encaja, construir con Tailwind usando **la misma paleta semántica** del repo.
+
+---
+
+## Component Patterns
+
+### Card
+```tsx
+<motion.article
+  whileHover={{ y: -2, transition: { duration: 0.2 } }}
+  className="group rounded-2xl border border-border bg-card-background p-6 transition-colors hover:border-accent/40"
+>
+```
+
+### Section wrapper
+```tsx
+<section className="py-24">
+  <div className="mx-auto max-w-4xl px-4 sm:px-6">
+    {/* content */}
+  </div>
+</section>
+```
+
+### Tag / Badge
+```tsx
+<span className="inline-flex items-center rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-text-secondary">
+  React
+</span>
+```
+
+### Divider
+```tsx
+<hr className="border-border" />
+```
+
+---
+
+## Do's and Don'ts
+
+| Do | Don't |
+|---|---|
+| Usar `rounded-2xl` / `rounded-xl` del sistema | Usar `rounded` / `rounded-md` como defecto visual |
+| Animar con Framer Motion lo que sea “entrada” | Depender solo de `transition` CSS para reveals complejos |
+| Colores: `background`, `card-background`, `text-*`, `accent`, `border` | Introducir `zinc-*`, `slate-*`, `violet-*`, `blue-*` como paleta paralela |
+| Un acento: **`accent` (#EC4869)** | Varios colores de marca mezclados |
+| `max-w-prose` / `max-w-xl` en textos largos | Párrafos a ancho completo sin límite |
+| Respetar `prefers-reduced-motion` | Animar siempre al máximo sin comprobar accesibilidad |
+
+---
+
+## Code Quality
+
+- Componentes en **TypeScript** (`.tsx`).
+- Props tipadas con **`interface`** (evitar `any`).
+- Estilos junto al componente; CSS global reservado a fuentes y variables en `index.css`.
+- Clases condicionales con **`cn()`** (`@/lib/utils`), no concatenación manual de strings.
+
+```tsx
+import { cn } from '@/lib/utils'
+
+<div className={cn('rounded-2xl border border-border p-6', isActive && 'border-accent ring-2 ring-accent/25')}>
+```

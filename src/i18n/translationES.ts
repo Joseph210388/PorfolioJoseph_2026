@@ -1,5 +1,3 @@
-import { title } from "process";
-
 export const es = {
     header: {
         home: 'Home',
@@ -47,11 +45,33 @@ export const es = {
         description: 'Una breve descripción del proyecto, las tecnologías utilizadas y el papel que desempeñé.',
         viewProject: 'Ver Proyecto',
         sourceCode: 'Código Fuente',
+        readMore: 'Leer más',
+        close: 'Cerrar',
+        technologies: 'Tecnologías',
+        searchPlaceholder: 'Buscar proyectos…',
+        clearFilters: 'Limpiar',
+        clearSearch: 'Borrar búsqueda',
+        filterAll: 'Todos',
+        filterCategory: 'Categoría',
+        filterTechnology: 'Tecnología',
+        filterStatus: 'Estado',
+        statusFinished: 'Finalizado',
+        statusInProgress: 'En progreso',
+        statusPaused: 'Pausado',
+        loading: 'Cargando proyectos...',
+        emptyList: 'No hay proyectos disponibles en este momento.',
+        noFilterResults: 'No hay resultados con esos filtros.',
+        technologiesListAria: 'Tecnologías usadas',
+        noTechnologies: 'Sin tecnologías',
     },
     experience: {
         tabsLabel: 'Pestañas de Experiencia',
         work: 'Laboral',
         studies: 'Estudios',
+        datePresent: 'ACTUALIDAD',
+        emptyWork: 'Sin experiencia para mostrar.',
+        emptyStudies: 'Sin estudios para mostrar.',
+        loading: 'Cargando experiencia...',
         studiesData: [
             {
                 title: 'Certificación Python',

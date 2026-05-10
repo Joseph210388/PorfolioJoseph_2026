@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-background: #F8F9FA;
+  --color-card-background: #FFFFFF;
+  --color-text-primary: #212529;
+  --color-text-secondary: #495057;
+  --color-text-muted: #6C757D;
+  --color-accent: #EC4869;
+  --color-border: #DEE2E6;
+  --color-header-bg: rgba(248, 249, 250, 0.8);
+  --color-blob-1: rgba(128, 0, 128, 0.1);
+  --color-blob-2: rgba(239, 68, 68, 0.1);
+  --color-blob-3: rgba(59, 130, 246, 0.1);
+  /* Superficie de menús flotantes: contraste suave respecto al fondo de página */
+  --color-dropdown-surface: #ffffff;
+}
+
+[data-theme='dark'] {
+  --color-background: #0F1C3A;
+  --color-card-background: #112240;
+  --color-text-primary: #F8F9FA;
+  --color-text-secondary: #CED4DA;
+  --color-text-muted: #8892b0;
+  --color-accent: #EC4869;
+  --color-border: #495057;
+  --color-header-bg: rgba(15, 28, 58, 0.8);
+  --color-blob-1: rgba(128, 0, 128, 0.2);
+  --color-blob-2: rgba(239, 68, 68, 0.2);
+  --color-blob-3: rgba(59, 130, 246, 0.2);
+  /* Superficie opaca del menú: más clara que la página para leer bien encima de imágenes */
+  --color-dropdown-surface: #2a4a7a;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text-secondary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-blink {
+  animation: blink 750ms step-end infinite;
+}
+

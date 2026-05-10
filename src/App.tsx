@@ -4,14 +4,23 @@ import Hero from './components/Hero';
 import SocialLinks from './components/SocialLinks';
 import Section from './components/Section';
 import LoadingScreen from './components/LoadingScreen';
-import ContactForm from './components/ContactForm';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { translations } from './i18n/translations';
 import { scrollToSectionById } from './utils/scrollToSection';
+import {
+    internalPathToSectionId,
+    isKnownSectionHash,
+    normalizeAppPath,
+    normalizeUnknownPathToHome,
+    pathnameWithoutBase,
+    sectionIdToPath,
+    toBrowserPath,
+} from './utils/sectionRoutes';
 import { AboutContent } from './sections/AboutSection';
 import { ProjectsContent } from './sections/ProjectsSection';
 import { ExperienceTabs } from './sections/ExperienceSection';
+import { ContactContent } from './sections/ContactSection';
 
 const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
@@ -56,11 +65,38 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (isLoading) return;
-        const id = window.location.hash.replace(/^#/, '');
-        if (!id) return;
+        const hash = window.location.hash.replace(/^#/, '');
+        if (hash && isKnownSectionHash(hash)) {
+            const path = sectionIdToPath(hash);
+            window.history.replaceState(null, '', toBrowserPath(path));
+            requestAnimationFrame(() => {
+                scrollToSectionById(hash, 'auto');
+            });
+            return;
+        }
+        const raw = normalizeAppPath(pathnameWithoutBase(window.location.pathname));
+        const internal = normalizeUnknownPathToHome(window.location.pathname);
+        if (internal !== raw) {
+            window.history.replaceState(null, '', toBrowserPath(internal));
+        }
+        const id = internalPathToSectionId(internal);
         requestAnimationFrame(() => {
             scrollToSectionById(id, 'auto');
         });
+    }, [isLoading]);
+
+    useEffect(() => {
+        if (isLoading) return;
+        const onPopState = () => {
+            const raw = normalizeAppPath(pathnameWithoutBase(window.location.pathname));
+            const internal = normalizeUnknownPathToHome(window.location.pathname);
+            if (internal !== raw) {
+                window.history.replaceState(null, '', toBrowserPath(internal));
+            }
+            scrollToSectionById(internalPathToSectionId(internal), 'auto');
+        };
+        window.addEventListener('popstate', onPopState);
+        return () => window.removeEventListener('popstate', onPopState);
     }, [isLoading]);
 
     useEffect(() => {
@@ -120,7 +156,7 @@ const App: React.FC = () => {
                         <ExperienceTabs locale={language} />
                     </Section>
                     <Section id="contacto" title={t.sectionTitles.contact}>
-                        <ContactForm t={t.contact} />
+                        <ContactContent t={t.contact} />
                     </Section>
                 </main>
                 <footer className="text-center py-8 text-text-muted">
