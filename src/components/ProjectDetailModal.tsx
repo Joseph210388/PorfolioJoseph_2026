@@ -124,7 +124,7 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm sm:p-6"
             role="dialog"
             aria-modal="true"
             aria-label={project.translations?.name ?? 'Project details'}
@@ -132,12 +132,15 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                 if (e.target === e.currentTarget) onClose();
             }}
         >
-            <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-card-background shadow-2xl ring-1 ring-white/10">
-                <div className="relative bg-background">
+            <div
+                className="my-auto flex w-full max-w-3xl max-h-[min(92dvh,880px)] flex-col overflow-hidden rounded-2xl bg-card-background shadow-2xl ring-1 ring-white/10"
+                onMouseDown={(e) => e.stopPropagation()}
+            >
+                <div className="relative shrink-0 bg-background">
                     <img
                         src={images[safeIndex]}
                         alt={project.translations?.name ?? 'Project image'}
-                        className="max-h-[min(50vh,320px)] w-full object-cover"
+                        className="max-h-[min(28vh,220px)] w-full object-cover sm:max-h-[min(36vh,280px)]"
                     />
                     {hasMultipleImages ? (
                         <>
@@ -184,7 +187,7 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                     </button>
                 </div>
 
-                <div className="p-6 sm:p-8">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8">
                     {/* Tipo + estado */}
                     <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
                         {project.categoryName ? (
