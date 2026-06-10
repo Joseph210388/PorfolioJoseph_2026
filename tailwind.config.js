@@ -22,9 +22,14 @@ export default {
           "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
           "100%": { transform: "translate(0px, 0px) scale(1)" },
         },
+        gridShift: {
+          "0%": { backgroundPosition: "0 0" },
+          "100%": { backgroundPosition: "80px 80px" },
+        },
       },
       animation: {
         blob: "blob 7s infinite",
+        "grid-shift": "gridShift 20s linear infinite",
       },
     },
   },

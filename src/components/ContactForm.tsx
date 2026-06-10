@@ -1,15 +1,21 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useForm, ValidationError } from '@formspree/react';
+import { Send } from 'lucide-react';
 import { sanitizeContactForm, CONTACT_FIELD_LIMITS } from '../utils/sanitizeContactForm';
+import { cn } from '@/lib/utils';
 
 interface ContactFormProps {
     t: {
+        formTitle: string;
+        formSubtitle: string;
         successTitle: string;
         successMessage: string;
-        description: string;
         nameLabel: string;
+        namePlaceholder: string;
         emailLabel: string;
+        emailPlaceholder: string;
         messageLabel: string;
+        messagePlaceholder: string;
         submitButton: string;
         submittingButton: string;
         validation: {
@@ -18,8 +24,8 @@ interface ContactFormProps {
             emailInvalid: string;
             messageRequired: string;
             messageTooShort: string;
-        }
-    }
+        };
+    };
 }
 
 type FormErrors = {
@@ -37,6 +43,16 @@ type FormData = {
 function isValidEmail(email: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
+
+const inputClass = (hasError: boolean) =>
+    cn(
+        'block w-full rounded-xl border bg-background px-4 py-3 text-base text-text-primary',
+        'placeholder:text-text-muted/70 transition-colors duration-300',
+        'focus:outline-none focus:ring-2 focus:ring-accent/25',
+        hasError ? 'border-red-400 focus:border-red-400' : 'border-border focus:border-accent',
+    );
+
+const labelClass = 'mb-2 block text-xs font-semibold uppercase tracking-wider text-text-muted';
 
 const ContactForm: React.FC<ContactFormProps> = ({ t }) => {
     const [state, handleSubmit] = useForm('manpldqa');
@@ -65,14 +81,14 @@ const ContactForm: React.FC<ContactFormProps> = ({ t }) => {
 
             return newErrors;
         },
-        [t.validation]
+        [t.validation],
     );
 
     const sanitizedSnapshot = useMemo(() => sanitizeContactForm(formData), [formData]);
 
     const isFormValid = useMemo(
         () => Object.keys(validateFormData(sanitizedSnapshot)).length === 0,
-        [sanitizedSnapshot, validateFormData]
+        [sanitizedSnapshot, validateFormData],
     );
 
     /** Errores mostrados: email en vivo al escribir; resto tras la primera interacción. */
@@ -111,18 +127,25 @@ const ContactForm: React.FC<ContactFormProps> = ({ t }) => {
 
     if (state.succeeded) {
         return (
-            <div className="max-w-2xl mx-auto text-center py-10">
-                <h3 className="text-2xl font-bold text-text-primary mb-4">{t.successTitle}</h3>
+            <div className="py-10 text-center">
+                <h3 className="mb-4 text-2xl font-bold text-text-primary">{t.successTitle}</h3>
                 <p className="text-lg text-text-secondary">{t.successMessage}</p>
             </div>
         );
     }
 
     return (
-        <div className="max-w-2xl mx-auto text-center">
-            <p className="text-lg text-text-secondary mb-8">{t.description}</p>
-            <form onSubmit={handleLocalSubmit} className="space-y-8 text-left" noValidate>
-                <div className="relative z-0 w-full group">
+        <div>
+            <header className="mb-8 text-left">
+                <h3 className="text-2xl font-bold tracking-tight text-accent sm:text-3xl">{t.formTitle}</h3>
+                <p className="mt-2 text-base text-text-secondary">{t.formSubtitle}</p>
+            </header>
+
+            <form onSubmit={handleLocalSubmit} className="space-y-6 text-left" noValidate>
+                <div>
+                    <label htmlFor="name" className={labelClass}>
+                        {t.nameLabel}
+                    </label>
                     <input
                         id="name"
                         type="text"
@@ -132,29 +155,23 @@ const ContactForm: React.FC<ContactFormProps> = ({ t }) => {
                         maxLength={CONTACT_FIELD_LIMITS.name}
                         autoComplete="name"
                         required
-                        className={`block py-2.5 px-0 w-full text-lg text-text-primary bg-transparent border-0 border-b-2 appearance-none focus:outline-none focus:ring-0 peer transition-colors duration-300 ${
-                            visibleErrors.name ? 'border-red-400 focus:border-red-400' : 'border-border focus:border-accent'
-                        }`}
-                        placeholder=" "
+                        placeholder={t.namePlaceholder}
+                        className={inputClass(!!visibleErrors.name)}
                         aria-invalid={!!visibleErrors.name}
                         aria-describedby={visibleErrors.name ? 'name-error' : undefined}
                     />
-                    <label
-                        htmlFor="name"
-                        className={`peer-focus:font-medium absolute text-lg duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 ${
-                            visibleErrors.name ? 'text-red-400 peer-focus:text-red-400' : 'text-text-muted peer-focus:text-accent'
-                        }`}
-                    >
-                        {t.nameLabel}
-                    </label>
                     {visibleErrors.name && (
-                        <p id="name-error" className="text-red-400 mt-1 text-sm">
+                        <p id="name-error" className="mt-1 text-sm text-red-400">
                             {visibleErrors.name}
                         </p>
                     )}
-                    <ValidationError prefix="Name" field="name" errors={state.errors} className="text-red-400 mt-1 text-sm" />
+                    <ValidationError prefix="Name" field="name" errors={state.errors} className="mt-1 text-sm text-red-400" />
                 </div>
-                <div className="relative z-0 w-full group">
+
+                <div>
+                    <label htmlFor="email" className={labelClass}>
+                        {t.emailLabel}
+                    </label>
                     <input
                         id="email"
                         type="email"
@@ -164,70 +181,63 @@ const ContactForm: React.FC<ContactFormProps> = ({ t }) => {
                         maxLength={CONTACT_FIELD_LIMITS.email}
                         autoComplete="email"
                         required
-                        className={`block py-2.5 px-0 w-full text-lg text-text-primary bg-transparent border-0 border-b-2 appearance-none focus:outline-none focus:ring-0 peer transition-colors duration-300 ${
-                            visibleErrors.email ? 'border-red-400 focus:border-red-400' : 'border-border focus:border-accent'
-                        }`}
-                        placeholder=" "
+                        placeholder={t.emailPlaceholder}
+                        className={inputClass(!!visibleErrors.email)}
                         aria-invalid={!!visibleErrors.email}
                         aria-describedby={visibleErrors.email ? 'email-error' : undefined}
                     />
-                    <label
-                        htmlFor="email"
-                        className={`peer-focus:font-medium absolute text-lg duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 ${
-                            visibleErrors.email ? 'text-red-400 peer-focus:text-red-400' : 'text-text-muted peer-focus:text-accent'
-                        }`}
-                    >
-                        {t.emailLabel}
-                    </label>
                     {visibleErrors.email && (
-                        <p id="email-error" className="text-red-400 mt-1 text-sm">
+                        <p id="email-error" className="mt-1 text-sm text-red-400">
                             {visibleErrors.email}
                         </p>
                     )}
-                    <ValidationError prefix="Email" field="email" errors={state.errors} className="text-red-400 mt-1 text-sm" />
+                    <ValidationError prefix="Email" field="email" errors={state.errors} className="mt-1 text-sm text-red-400" />
                 </div>
-                <div className="relative z-0 w-full group">
-                    <textarea
-                        id="message"
-                        name="message"
-                        value={formData.message}
-                        onChange={handleChange}
-                        maxLength={CONTACT_FIELD_LIMITS.message}
-                        autoComplete="off"
-                        required
-                        rows={4}
-                        className={`block py-2.5 px-0 w-full text-lg text-text-primary bg-transparent border-0 border-b-2 appearance-none focus:outline-none focus:ring-0 resize-none peer transition-colors duration-300 ${
-                            visibleErrors.message ? 'border-red-400 focus:border-red-400' : 'border-border focus:border-accent'
-                        }`}
-                        placeholder=" "
-                        aria-invalid={!!visibleErrors.message}
-                        aria-describedby={visibleErrors.message ? 'message-error' : undefined}
-                    />
-                    <label
-                        htmlFor="message"
-                        className={`peer-focus:font-medium absolute text-lg duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:left-0 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 ${
-                            visibleErrors.message ? 'text-red-400 peer-focus:text-red-400' : 'text-text-muted peer-focus:text-accent'
-                        }`}
-                    >
+
+                <div>
+                    <label htmlFor="message" className={labelClass}>
                         {t.messageLabel}
                     </label>
+                    <div className="relative">
+                        <textarea
+                            id="message"
+                            name="message"
+                            value={formData.message}
+                            onChange={handleChange}
+                            maxLength={CONTACT_FIELD_LIMITS.message}
+                            autoComplete="off"
+                            required
+                            rows={5}
+                            placeholder={t.messagePlaceholder}
+                            className={cn(inputClass(!!visibleErrors.message), 'resize-none pb-8')}
+                            aria-invalid={!!visibleErrors.message}
+                            aria-describedby={visibleErrors.message ? 'message-error' : undefined}
+                        />
+                        <span className="pointer-events-none absolute bottom-3 right-3 text-xs text-text-muted">
+                            {formData.message.length}/{CONTACT_FIELD_LIMITS.message}
+                        </span>
+                    </div>
                     {visibleErrors.message && (
-                        <p id="message-error" className="text-red-400 mt-1 text-sm">
+                        <p id="message-error" className="mt-1 text-sm text-red-400">
                             {visibleErrors.message}
                         </p>
                     )}
-                    <ValidationError prefix="Message" field="message" errors={state.errors} className="text-red-400 mt-1 text-sm" />
+                    <ValidationError prefix="Message" field="message" errors={state.errors} className="mt-1 text-sm text-red-400" />
                 </div>
-                <div className="text-center pt-4">
-                    <button
-                        type="submit"
-                        disabled={!isFormValid || state.submitting}
-                        aria-disabled={!isFormValid || state.submitting}
-                        className="bg-accent text-white font-bold py-3 px-12 rounded-lg text-lg hover:bg-opacity-80 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    >
-                        {state.submitting ? t.submittingButton : t.submitButton}
-                    </button>
-                </div>
+
+                <button
+                    type="submit"
+                    disabled={!isFormValid || state.submitting}
+                    aria-disabled={!isFormValid || state.submitting}
+                    className={cn(
+                        'flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3.5',
+                        'text-base font-semibold text-white transition-all duration-300',
+                        'hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50',
+                    )}
+                >
+                    <Send className="h-4 w-4" aria-hidden />
+                    {state.submitting ? t.submittingButton : t.submitButton}
+                </button>
             </form>
         </div>
     );

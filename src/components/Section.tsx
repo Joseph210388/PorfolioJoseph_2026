@@ -16,7 +16,7 @@ const Section: React.FC<SectionProps> = ({ id, title, children }) => {
         <section
             id={id}
             ref={ref}
-            className={`py-20 md:py-28 transition-all duration-700 ease-out transform scroll-mt-20 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            className={`py-14 md:py-20 transition-all duration-700 ease-out transform scroll-mt-20 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                 }`}
         >
             <div className="flex items-center mb-12">

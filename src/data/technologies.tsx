@@ -33,6 +33,8 @@ import {
     OllamaIcon,
     GoogleAntigravityIcon,
     CursorIcon,
+    DockerIcon,
+    PostgresIcon,
 } from '../components/icons';
 
 const iconSize = 'w-20 h-20';
@@ -60,6 +62,7 @@ export const backendTechnologies = [
 
 export const databaseTechnologies = [
     { name: 'MySQL', icon: <MySqlIcon className={iconSize} /> },
+    { name: 'PostgreSQL', icon: <PostgresIcon className={iconMutedColor} /> },
     { name: 'SQL Server', icon: <SqlServerIcon className={iconMutedColor} /> },
     { name: 'MongoDB', icon: <MongoDbIcon className={iconSize} /> },
     { name: 'Supabase', icon: <SupabaseIcon className={iconSize} /> },
@@ -68,6 +71,7 @@ export const databaseTechnologies = [
 export const toolsTechnologies = [
     { name: 'Git', icon: <GitIcon className={iconMutedColor} /> },
     { name: 'GitHub', icon: <GithubToolIcon className={iconMutedColor} /> },
+    { name: 'Docker', icon: <DockerIcon className={iconMutedColor} /> },
     { name: 'Postman', icon: <PostmanIcon className={iconMutedColor} /> },
     { name: 'Webpack', icon: <WebpackIcon className={iconMutedColor} /> },
     { name: 'Vite', icon: <ViteIcon className={iconMutedColor} /> },
@@ -88,3 +92,14 @@ export const iaToolsTechnologies = [
     { name: 'Gemini', icon: <GeminiIcon className={iconSize} /> },
     { name: 'Ollama', icon: <OllamaIcon className={iconSize} /> },
 ];
+
+export const allStackTechnologies = [
+    ...frontendTechnologies,
+    ...backendTechnologies,
+    ...databaseTechnologies,
+    ...toolsTechnologies,
+    ...otherLanguagesTechnologies,
+    ...iaToolsTechnologies,
+];
+
+export const stackTechnologyCount = allStackTechnologies.length;

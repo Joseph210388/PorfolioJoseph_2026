@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { scrollToSectionById } from '../utils/scrollToSection';
 import { toBrowserPath } from '../utils/sectionRoutes';
 
@@ -7,71 +7,19 @@ const CV_PDF_BY_LANG = {
     en: '/pdf/CVJosephValderrama_EN.pdf',
 } as const;
 
-const LG_MIN_WIDTH = '(min-width: 1024px)';
-
 interface HeroProps {
     language: keyof typeof CV_PDF_BY_LANG;
     t: {
         greeting: string;
         name: string;
-        staticSubtitle: string;
-        subtitles: string[];
+        subtitle: string;
         description: string;
         resumeButton: string;
         contactButton: string;
-    }
+    };
 }
 
 const Hero: React.FC<HeroProps> = ({ language, t }) => {
-    const [isLgUp, setIsLgUp] = useState(
-        () => typeof window !== 'undefined' && window.matchMedia(LG_MIN_WIDTH).matches,
-    );
-    const [subtitleIndex, setSubtitleIndex] = useState(0);
-    const [displayedText, setDisplayedText] = useState('');
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    useEffect(() => {
-        const mq = window.matchMedia(LG_MIN_WIDTH);
-        const onChange = () => setIsLgUp(mq.matches);
-        onChange();
-        mq.addEventListener('change', onChange);
-        return () => mq.removeEventListener('change', onChange);
-    }, []);
-
-    useEffect(() => {
-        setDisplayedText('');
-        setIsDeleting(false);
-        setSubtitleIndex(0);
-    }, [t]);
-
-    useEffect(() => {
-        if (!isLgUp) return;
-
-        const handleTyping = () => {
-            const currentSubtitle = t.subtitles[subtitleIndex];
-
-            if (isDeleting) {
-                if (displayedText.length > 0) {
-                    setDisplayedText(currentSubtitle.substring(0, displayedText.length - 1));
-                } else {
-                    setIsDeleting(false);
-                    setSubtitleIndex((prevIndex) => (prevIndex + 1) % t.subtitles.length);
-                }
-            } else {
-                if (displayedText.length < currentSubtitle.length) {
-                    setDisplayedText(currentSubtitle.substring(0, displayedText.length + 1));
-                } else {
-                    setTimeout(() => setIsDeleting(true), 2000);
-                }
-            }
-        };
-
-        const typingSpeed = isDeleting ? 75 : 120;
-        const timeout = setTimeout(handleTyping, typingSpeed);
-
-        return () => clearTimeout(timeout);
-    }, [displayedText, isDeleting, subtitleIndex, t, isLgUp]);
-    
     const handleScrollToContact = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
         window.history.replaceState(null, '', toBrowserPath('/contacto'));
@@ -87,26 +35,10 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
                         <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-text-primary leading-tight">
                             {t.name} <span className="text-accent">Joseph Valderrama</span>.
                         </h1>
-                        <h2
-                            className={`text-3xl sm:text-4xl md:text-5xl font-bold text-text-secondary mt-2 leading-snug ${
-                                isLgUp ? 'min-h-[5lh] sm:min-h-[4lh] md:min-h-[3lh]' : ''
-                            }`}
-                            aria-live={isLgUp ? 'polite' : undefined}
-                        >
-                            {isLgUp ? (
-                                <>
-                                    {displayedText}
-                                    <span className="animate-blink" aria-hidden>
-                                        |
-                                    </span>
-                                </>
-                            ) : (
-                                t.staticSubtitle
-                            )}
+                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-text-secondary mt-2 leading-snug">
+                            {t.subtitle}
                         </h2>
-                        <p className="text-text-secondary mt-4 max-w-xl">
-                            {t.description}
-                        </p>
+                        <p className="text-text-secondary mt-4 max-w-xl">{t.description}</p>
                         <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
                             <a
                                 href={CV_PDF_BY_LANG[language]}

@@ -9,15 +9,7 @@ export const es = {
     hero: {
         greeting: 'Hola,',
         name: 'Soy',
-        staticSubtitle: 'Desarrollador Web Full Stack',
-        subtitles: [
-            'Desarrollador Web Full Stack',
-            'Construyo cosas para la web.',
-            'Diseño y desarrollo soluciones digitales.',
-            'Resuelvo problemas con tecnología web.',
-            'Código limpio, soluciones robustas.',
-            'Desarrollo soluciones web preparadas para el futuro.',
-        ],
+        subtitle: 'Desarrollador Web Full Stack',
         description:
             'Desarrollador web junior con experiencia full stack. Dos años en entorno profesional con Angular y NestJS en aplicaciones corporativas. Conocimientos sólidos en React y Next.js. Enfocado en colaboración, apoyo al equipo y en asumir nuevas responsabilidades para aportar valor al producto.',
         resumeButton: 'Descargar CV',
@@ -30,14 +22,22 @@ export const es = {
         contact: 'Contacto',
     },
     about: {
-        p1: '¡Hola! Soy Joseph Josué Valderrama Vílchez, desarrollador web junior con base en Asturias y disponibilidad geográfica. Me apasiona construir aplicaciones web funcionales y centradas en el usuario, con experiencia en frontend y backend en entornos corporativos.',
-        p2: 'Llevo dos años en la industria trabajando principalmente con Angular y NestJS, y sigo ampliando mi perfil con React, Next.js y buenas prácticas de equipo. Disfruto resolver problemas complejos, optimizar flujos de trabajo y seguir aprendiendo. Idiomas: español (nativo) e inglés (A2).',
+        p1Before: '¡Hola! Soy ',
+        fullName: 'Joseph Josué Valderrama Vílchez',
+        p1After: ', desarrollador web junior con base en Asturias y disponibilidad geográfica.',
+        p2: 'Dos años en la industria con Angular y NestJS, ampliando mi perfil con React y Next.js. Disfruto resolver problemas complejos y optimizar flujos de trabajo.',
         frontend: 'Frontend',
         backend: 'Backend',
         databases: 'Base de Datos',
         tools: 'Herramientas',
         otherLanguages: 'Otros Lenguajes',
         iaTools: 'IA & Tools',
+        stats: {
+            experience: 'Experiencia',
+            projects: 'Proyectos',
+            technologies: 'Tecnologías',
+            yearsUnit: 'Años',
+        },
     },
     projects: {
         project: 'Proyecto',
@@ -96,15 +96,37 @@ export const es = {
         ],
     },
     contact: {
+        formTitle: '¡Trabajemos juntos!',
+        formSubtitle: 'Escríbeme y te respondo lo antes posible.',
         successTitle: '¡Gracias por tu mensaje!',
         successMessage: 'Me pondré en contacto contigo pronto.',
-        description:
-            'Aunque actualmente estoy trabajando, siempre estoy abierto a nuevos retos. Mi bandeja de entrada siempre está abierta a ofertas o si tienes alguna pregunta, haré todo lo posible por responderla.',
         nameLabel: 'Nombre',
+        namePlaceholder: 'Tu nombre completo',
         emailLabel: 'Email',
+        emailPlaceholder: 'tu@email.com',
         messageLabel: 'Mensaje',
-        submitButton: 'Enviar Mensaje',
+        messagePlaceholder: 'Cuéntame sobre tu proyecto o idea...',
+        submitButton: 'Enviar mensaje',
         submittingButton: 'Enviando...',
+        cards: {
+            contactInfo: {
+                title: 'Información de contacto',
+                location: 'Asturias, España',
+            },
+            availability: {
+                title: 'Disponibilidad',
+                status: 'Abierto a nuevas oportunidades',
+            },
+            resume: {
+                title: 'Currículum',
+                downloadButton: 'Descargar CV',
+            },
+            social: {
+                title: 'Social',
+            },
+            copyEmail: 'Copiar email',
+            copySuccess: '¡Copiado!',
+        },
         validation: {
             nameRequired: 'El nombre es obligatorio.',
             emailRequired: 'El email es obligatorio.',

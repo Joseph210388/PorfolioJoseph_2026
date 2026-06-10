@@ -9,15 +9,7 @@ export const en = {
     hero: {
         greeting: 'Hello,',
         name: "I'm",
-        staticSubtitle: 'Web Developer Full Stack',
-        subtitles: [
-            'Web Developer Full Stack',
-            'I build things for the web.',
-            'I design and develop digital solutions.',
-            'I solve problems with web technology.',
-            'Clean code, robust solutions.',
-            'Developing future-ready web solutions.',
-        ],
+        subtitle: 'Full Stack Web Developer',
         description:
             'Junior web developer with full stack experience. Two years in professional environments with Angular and NestJS on corporate applications. Good knowledge of React and Next.js. I like working with the team, taking on new tasks and trying to add real value to the product.',
         resumeButton: 'Download CV',
@@ -30,14 +22,22 @@ export const en = {
         contact: 'Contact',
     },
     about: {
-        p1: "Hi! I'm Joseph Josué Valderrama Vílchez, a junior web developer based in Asturias, Spain. I'm open to moving for the right job. I enjoy building web apps that are actually useful, with experience in both frontend and backend in company teams.",
-        p2: "Two years in the field, mainly with Angular and NestJS. I'm getting more comfortable with React and Next.js. Getting along with the team matters to me. I don't mind tricky problems and I'm always looking for ways to improve how we work. Spanish is my first language and my English is around A2 level.",
+        p1Before: "Hi! I'm ",
+        fullName: 'Joseph Josué Valderrama Vílchez',
+        p1After: ', a junior web developer based in Asturias with geographic mobility.',
+        p2: 'Two years in the industry with Angular and NestJS, expanding my profile with React and Next.js. I enjoy solving complex problems and optimizing workflows.',
         frontend: 'Frontend',
         backend: 'Backend',
         databases: 'Databases',
         tools: 'Tools',
         otherLanguages: 'Other Languages',
         iaTools: 'IA & Tools',
+        stats: {
+            experience: 'Experience',
+            projects: 'Projects',
+            technologies: 'Technologies',
+            yearsUnit: 'Years',
+        },
     },
     projects: {
         project: 'Project',
@@ -96,15 +96,37 @@ export const en = {
         ],
     },
     contact: {
+        formTitle: "Let's work together!",
+        formSubtitle: "Write to me and I'll get back to you as soon as possible.",
         successTitle: 'Thank you for your message!',
         successMessage: "I'll get back to you soon.",
-        description:
-            "I'm currently employed but I'm still open to the right opportunity. Feel free to write to me about a role or anything you'd like to know. I'll reply when I can.",
         nameLabel: 'Name',
+        namePlaceholder: 'Your full name',
         emailLabel: 'Email',
+        emailPlaceholder: 'you@email.com',
         messageLabel: 'Message',
-        submitButton: 'Send Message',
+        messagePlaceholder: 'Tell me about your project or idea...',
+        submitButton: 'Send message',
         submittingButton: 'Sending...',
+        cards: {
+            contactInfo: {
+                title: 'Contact information',
+                location: 'Asturias, Spain',
+            },
+            availability: {
+                title: 'Availability',
+                status: 'Open to new opportunities',
+            },
+            resume: {
+                title: 'Resume',
+                downloadButton: 'Download CV',
+            },
+            social: {
+                title: 'Social',
+            },
+            copyEmail: 'Copy email',
+            copySuccess: 'Copied!',
+        },
         validation: {
             nameRequired: 'Name is required.',
             emailRequired: 'Email is required.',

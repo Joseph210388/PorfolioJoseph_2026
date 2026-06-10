@@ -381,7 +381,6 @@ export const ProjectsContent: React.FC<{ locale: Locale }> = ({ locale }) => {
                 closeLabel={t.close}
                 sourceCodeLabel={t.sourceCode}
                 viewProjectLabel={t.viewProject}
-                technologiesHeading={t.technologies}
                 fallbackDescription={t.description}
             />
         </div>

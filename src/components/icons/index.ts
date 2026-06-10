@@ -40,3 +40,5 @@ export { default as OllamaIcon } from './OllamaIcon';
 export { default as CursorIcon } from './CursorIcon';
 export { default as JavaIcon } from './JavaIcon';
 export { default as PythonIcon } from './PythonIcon';
+export { default as DockerIcon } from './DockerIcon';
+export { default as PostgresIcon } from './PostgresIcon';

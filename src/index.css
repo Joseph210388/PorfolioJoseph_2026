@@ -58,3 +58,25 @@ body {
   animation: blink 750ms step-end infinite;
 }
 
+/* Panel /admin: sidebar oscuro + contenido blanco + acento rojo del portfolio */
+.admin-shell,
+.admin-modal-shell {
+  --admin-sidebar: #0f1c3a;
+  --admin-sidebar-hover: #162a52;
+  --admin-sidebar-active: rgba(236, 72, 105, 0.2);
+  --admin-sidebar-text: #e8edf5;
+  --admin-sidebar-muted: #8892b0;
+  --admin-main: #ffffff;
+  --admin-text: #212529;
+  --admin-text-secondary: #495057;
+  --admin-text-muted: #6c757d;
+  --admin-border: #dee2e6;
+  --admin-accent: #ec4869;
+  --admin-accent-hover: #d93d5c;
+}
+
+/* Modal en portal (fuera del layout): forzar tema claro en inputs nativos */
+.admin-modal-shell {
+  color-scheme: light;
+}
+
