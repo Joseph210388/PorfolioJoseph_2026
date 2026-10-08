@@ -19,7 +19,7 @@ const AdminLayout: React.FC = () => {
     };
 
     return (
-        <div className="admin-shell flex min-h-screen">
+        <div className="admin-shell flex h-dvh max-h-dvh overflow-hidden">
             {mobileOpen ? (
                 <button
                     type="button"
@@ -31,21 +31,22 @@ const AdminLayout: React.FC = () => {
 
             <div
                 className={cn(
-                    'fixed inset-y-0 left-0 z-50 h-screen transition-transform duration-300 lg:sticky lg:top-0 lg:translate-x-0',
+                    'fixed inset-y-0 left-0 z-50 h-dvh transition-transform duration-300 lg:sticky lg:top-0 lg:translate-x-0',
                     mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
                 )}
             >
                 <AdminSidebar onSignOut={handleSignOut} onClose={() => setMobileOpen(false)} />
             </div>
 
-            <div className="flex min-w-0 flex-1 flex-col bg-[var(--admin-main)]">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--admin-main)]">
                 <AdminTopBar
                     title={title}
                     description={description}
                     email={user?.email}
                     onMenuClick={() => setMobileOpen(true)}
                 />
-                <main className="flex-1 overflow-x-hidden px-4 py-6 sm:px-8 sm:py-8">
+                {/* El scroll de listados vive dentro de cada página/tabla, no en toda la app */}
+                <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-4 sm:px-8 sm:py-6">
                     <Outlet />
                 </main>
             </div>

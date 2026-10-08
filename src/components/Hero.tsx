@@ -1,14 +1,11 @@
 import React from 'react';
+import type { Locale } from '../i18n/translations';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 import { scrollToSectionById } from '../utils/scrollToSection';
 import { toBrowserPath } from '../utils/sectionRoutes';
 
-const CV_PDF_BY_LANG = {
-    es: '/pdf/CVJosephValderrama_ES.pdf',
-    en: '/pdf/CVJosephValderrama_EN.pdf',
-} as const;
-
 interface HeroProps {
-    language: keyof typeof CV_PDF_BY_LANG;
+    language: Locale;
     t: {
         greeting: string;
         name: string;
@@ -20,6 +17,8 @@ interface HeroProps {
 }
 
 const Hero: React.FC<HeroProps> = ({ language, t }) => {
+    const { getCvUrl } = useSiteSettings();
+
     const handleScrollToContact = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
         window.history.replaceState(null, '', toBrowserPath('/contacto'));
@@ -41,7 +40,7 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
                         <p className="text-text-secondary mt-4 max-w-xl">{t.description}</p>
                         <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
                             <a
-                                href={CV_PDF_BY_LANG[language]}
+                                href={getCvUrl(language)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 download

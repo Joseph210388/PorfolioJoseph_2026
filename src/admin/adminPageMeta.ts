@@ -3,7 +3,7 @@ export const ADMIN_BRAND = 'Admin Portfolio';
 const pageMeta: Record<string, { title: string; description: string }> = {
     '/admin/dashboard': {
         title: 'Inicio',
-        description: 'Resumen del contenido registrado en la base de datos.',
+        description: 'Resumen del contenido, CV del portfolio y accesos rápidos.',
     },
     '/admin/projects': {
         title: 'Proyectos',

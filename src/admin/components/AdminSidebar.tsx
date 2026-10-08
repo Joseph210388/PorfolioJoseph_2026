@@ -20,7 +20,7 @@ interface AdminSidebarProps {
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onSignOut, onClose, className }) => (
     <aside
         className={cn(
-            'flex h-screen min-h-screen w-64 shrink-0 flex-col bg-[var(--admin-sidebar)] text-[var(--admin-sidebar-text)]',
+            'flex h-dvh min-h-0 w-64 shrink-0 flex-col bg-[var(--admin-sidebar)] text-[var(--admin-sidebar-text)]',
             className,
         )}
     >

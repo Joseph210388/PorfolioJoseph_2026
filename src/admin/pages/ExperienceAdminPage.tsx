@@ -1,21 +1,31 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { AdminField, adminInputClass } from '../components/AdminField';
 import AdminModal from '../components/AdminModal';
 import { AdminModalFooter } from '../components/AdminModalFooter';
 import { AdminTableToolbar } from '../components/AdminTableToolbar';
+import { AdminPagination } from '../components/AdminPagination';
+import {
+    AdminScrollableTable,
+    adminTableHeadClass,
+    adminTableThClass,
+} from '../components/AdminScrollableTable';
 import {
     deleteExperience,
-    fetchAdminExperience,
+    fetchAdminExperiencePaginated,
+    fetchExperienceOrderIds,
     saveExperience,
     translationToForm,
     updateExperienceOrder,
+    type AdminExperienceListItem,
     type ExperienceFormData,
 } from '../adminApi';
+import { DEFAULT_ADMIN_PAGE_SIZE, type AdminPageSize } from '../adminListTypes';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
 
-type ExperienceRow = Awaited<ReturnType<typeof fetchAdminExperience>>[number];
+type ExperienceRow = AdminExperienceListItem;
 
 const emptyForm = (): ExperienceFormData => ({
     company: '',
@@ -35,6 +45,9 @@ const formatDateRange = (start: string, end: string | null) => {
 
 const ExperienceAdminPage: React.FC = () => {
     const [items, setItems] = useState<ExperienceRow[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState<AdminPageSize>(DEFAULT_ADMIN_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -43,34 +56,35 @@ const ExperienceAdminPage: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [dragIndex, setDragIndex] = useState<number | null>(null);
     const [query, setQuery] = useState('');
+    const debouncedQuery = useDebouncedValue(query);
+
+    const canReorder = !debouncedQuery.trim() && total > 0 && total <= pageSize;
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            setItems(await fetchAdminExperience());
+            const result = await fetchAdminExperiencePaginated({
+                page,
+                pageSize,
+                search: debouncedQuery,
+            });
+            setItems(result.items);
+            setTotal(result.total);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error al cargar');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, pageSize, debouncedQuery]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedQuery, pageSize]);
 
     useEffect(() => {
         load();
     }, [load]);
-
-    const filteredItems = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        if (!q) return items;
-        return items.filter((row) => {
-            const title = row.translationsEs?.title ?? row.translationsEn?.title ?? '';
-            return (
-                title.toLowerCase().includes(q) ||
-                row.company.toLowerCase().includes(q)
-            );
-        });
-    }, [items, query]);
 
     const closeForm = () => {
         setShowForm(false);
@@ -79,7 +93,7 @@ const ExperienceAdminPage: React.FC = () => {
 
     const openCreate = () => {
         setEditingId(null);
-        setForm({ ...emptyForm(), order: items.length });
+        setForm({ ...emptyForm(), order: total });
         setShowForm(true);
     };
 
@@ -123,24 +137,18 @@ const ExperienceAdminPage: React.FC = () => {
     };
 
     const handleDrop = async (targetIndex: number) => {
-        if (dragIndex === null || dragIndex === targetIndex) return;
+        if (!canReorder || dragIndex === null || dragIndex === targetIndex) return;
 
-        const reordered = [...filteredItems];
+        const reordered = [...items];
         const [moved] = reordered.splice(dragIndex, 1);
         reordered.splice(targetIndex, 0, moved);
-
         const idOrder = reordered.map((r) => r.id);
-        const allIds = items.map((r) => r.id);
-        const remaining = allIds.filter((id) => !idOrder.includes(id));
-        const fullOrder = [...idOrder, ...remaining];
-
-        setItems((prev) => {
-            const map = new Map(prev.map((p) => [p.id, p]));
-            return fullOrder.map((id, index) => ({ ...map.get(id)!, order: index }));
-        });
 
         try {
-            await updateExperienceOrder(fullOrder);
+            const allIds = await fetchExperienceOrderIds();
+            const remaining = allIds.filter((id) => !idOrder.includes(id));
+            await updateExperienceOrder([...idOrder, ...remaining]);
+            await load();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error al reordenar');
             await load();
@@ -153,8 +161,8 @@ const ExperienceAdminPage: React.FC = () => {
     };
 
     return (
-        <div>
-            {error ? <p className="mb-4 text-sm text-red-400">{error}</p> : null}
+        <div className="flex h-full min-h-0 flex-col">
+            {error ? <p className="mb-3 shrink-0 text-sm text-red-400">{error}</p> : null}
 
             <AdminModal
                 open={showForm}
@@ -196,8 +204,12 @@ const ExperienceAdminPage: React.FC = () => {
             </AdminModal>
 
             <AdminTableToolbar
+                className="shrink-0"
                 query={query}
-                onQueryChange={setQuery}
+                onQueryChange={(value) => {
+                    setQuery(value);
+                    setPage(1);
+                }}
                 placeholder="Buscar experiencia..."
                 right={
                     <button
@@ -212,98 +224,109 @@ const ExperienceAdminPage: React.FC = () => {
             />
 
             {loading ? (
-                <div className="flex justify-center py-12">
+                <div className="flex flex-1 items-center justify-center py-12">
                     <Spinner />
                 </div>
-            ) : items.length === 0 ? (
-                <p className="rounded-2xl border border-[var(--admin-border)] py-12 text-center text-sm text-[var(--admin-text-muted)]">
-                    No hay experiencias registradas.
-                </p>
-            ) : filteredItems.length === 0 ? (
-                <p className="rounded-2xl border border-[var(--admin-border)] py-12 text-center text-sm text-[var(--admin-text-muted)]">
-                    No hay experiencias que coincidan con la búsqueda.
-                </p>
+            ) : total === 0 && !debouncedQuery.trim() ? (
+                <AdminScrollableTable empty emptyMessage="No hay experiencias registradas.">
+                    {null}
+                </AdminScrollableTable>
+            ) : total === 0 ? (
+                <AdminScrollableTable empty emptyMessage="No hay experiencias que coincidan con la búsqueda.">
+                    {null}
+                </AdminScrollableTable>
             ) : (
-                <div className="overflow-x-auto rounded-2xl border border-[var(--admin-border)]">
-                    <table className="w-full min-w-[560px] border-collapse text-left text-sm">
-                        <thead>
-                            <tr className="border-b border-[var(--admin-border)] bg-slate-50">
-                                <th className="w-24 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">
-                                    Orden
-                                </th>
-                                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">
-                                    Puesto
-                                </th>
-                                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">
-                                    Empresa
-                                </th>
-                                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">
-                                    Fechas
-                                </th>
-                                <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">
-                                    Acciones
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--admin-border)]">
-                            {filteredItems.map((row, index) => (
-                                <tr
-                                    key={row.id}
-                                    draggable
-                                    onDragStart={() => setDragIndex(index)}
-                                    onDragOver={(e) => e.preventDefault()}
-                                    onDrop={() => handleDrop(index)}
-                                    onDragEnd={() => setDragIndex(null)}
-                                    className={cn(
-                                        'bg-white transition-colors hover:bg-slate-50',
-                                        dragIndex === index && 'opacity-50',
-                                    )}
-                                >
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2 text-[var(--admin-text-muted)]">
-                                            <GripVertical className="h-4 w-4 shrink-0 cursor-grab active:cursor-grabbing" aria-hidden />
-                                            <span className="font-mono text-xs">{String(row.order).padStart(2, '0')}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 font-medium text-[var(--admin-text)]">
-                                        {row.translationsEs?.title ?? row.translationsEn?.title ?? '—'}
-                                    </td>
-                                    <td className="px-4 py-3 text-[var(--admin-text-secondary)]">{row.company}</td>
-                                    <td className="px-4 py-3 text-[var(--admin-text-muted)]">
-                                        {formatDateRange(row.date_start, row.date_end)}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex justify-end gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => openEdit(row)}
-                                                aria-label="Editar"
-                                                className="rounded-lg p-2 text-[var(--admin-text-muted)] transition-colors hover:bg-slate-100 hover:text-[var(--admin-accent)]"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDelete(row.id)}
-                                                aria-label="Eliminar"
-                                                className="rounded-lg p-2 text-[var(--admin-text-muted)] transition-colors hover:bg-red-50 hover:text-red-500"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </td>
+                <>
+                    <AdminScrollableTable
+                        footer={
+                            <AdminPagination
+                                page={page}
+                                pageSize={pageSize}
+                                total={total}
+                                onPageChange={setPage}
+                                onPageSizeChange={(size) => {
+                                    setPageSize(size);
+                                    setPage(1);
+                                }}
+                                idPrefix="experience"
+                            />
+                        }
+                    >
+                        <table className="w-full min-w-[560px] border-collapse text-left text-sm">
+                            <thead className={adminTableHeadClass}>
+                                <tr>
+                                    <th className={cn(adminTableThClass, 'w-24')}>Orden</th>
+                                    <th className={adminTableThClass}>Puesto</th>
+                                    <th className={adminTableThClass}>Empresa</th>
+                                    <th className={adminTableThClass}>Fechas</th>
+                                    <th className={cn(adminTableThClass, 'w-28 text-right')}>Acciones</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--admin-border)]">
+                                {items.map((row, index) => (
+                                    <tr
+                                        key={row.id}
+                                        draggable={canReorder}
+                                        onDragStart={() => canReorder && setDragIndex(index)}
+                                        onDragOver={(e) => canReorder && e.preventDefault()}
+                                        onDrop={() => handleDrop(index)}
+                                        onDragEnd={() => setDragIndex(null)}
+                                        className={cn(
+                                            'bg-white transition-colors hover:bg-slate-50',
+                                            dragIndex === index && 'opacity-50',
+                                        )}
+                                    >
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2 text-[var(--admin-text-muted)]">
+                                                <GripVertical
+                                                    className={cn(
+                                                        'h-4 w-4 shrink-0',
+                                                        canReorder ? 'cursor-grab active:cursor-grabbing' : 'opacity-30',
+                                                    )}
+                                                    aria-hidden
+                                                />
+                                                <span className="font-mono text-xs">{String(row.order).padStart(2, '0')}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 font-medium text-[var(--admin-text)]">
+                                            {row.translationsEs?.title ?? row.translationsEn?.title ?? '—'}
+                                        </td>
+                                        <td className="px-4 py-3 text-[var(--admin-text-secondary)]">{row.company}</td>
+                                        <td className="px-4 py-3 text-[var(--admin-text-muted)]">
+                                            {formatDateRange(row.date_start, row.date_end)}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex justify-end gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openEdit(row)}
+                                                    aria-label="Editar"
+                                                    className="rounded-lg p-2 text-[var(--admin-text-muted)] transition-colors hover:bg-slate-100 hover:text-[var(--admin-accent)]"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(row.id)}
+                                                    aria-label="Eliminar"
+                                                    className="rounded-lg p-2 text-[var(--admin-text-muted)] transition-colors hover:bg-red-50 hover:text-red-500"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </AdminScrollableTable>
+                    <p className="mt-2 shrink-0 text-xs text-[var(--admin-text-muted)]">
+                        {canReorder
+                            ? 'Arrastra las filas para cambiar el orden de aparición en el portfolio.'
+                            : 'Para reordenar, quita la búsqueda y muestra todas las filas en una sola página.'}
+                    </p>
+                </>
             )}
-
-            {!loading && items.length > 0 ? (
-                <p className="mt-4 text-xs text-[var(--admin-text-muted)]">
-                    Arrastra las filas para cambiar el orden de aparición en el portfolio.
-                </p>
-            ) : null}
         </div>
     );
 };

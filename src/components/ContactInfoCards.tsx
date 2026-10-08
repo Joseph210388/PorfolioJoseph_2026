@@ -4,13 +4,9 @@ import { Copy, Check, Download, Mail, MapPin } from 'lucide-react';
 import { GithubIcon, LinkedinIcon } from './icons';
 import { cn } from '@/lib/utils';
 import type { Locale } from '../i18n/translations';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 
 const CONTACT_EMAIL = 'josephvalderrama2103@icloud.com';
-
-const CV_PDF_BY_LANG = {
-    es: '/pdf/CVJosephValderrama_ES.pdf',
-    en: '/pdf/CVJosephValderrama_EN.pdf',
-} as const;
 
 const SOCIAL_LINKS = [
     { href: 'https://github.com/Joseph210388', label: 'GitHub', icon: <GithubIcon /> },
@@ -46,6 +42,7 @@ const cardClass =
     'rounded-2xl border border-border bg-card-background p-5 sm:p-6 transition-colors hover:border-accent/40';
 
 const ContactInfoCards: React.FC<ContactInfoCardsProps> = ({ t, locale }) => {
+    const { getCvUrl } = useSiteSettings();
     const [emailCopied, setEmailCopied] = useState(false);
 
     const handleCopyEmail = useCallback(async () => {
@@ -121,7 +118,7 @@ const ContactInfoCards: React.FC<ContactInfoCardsProps> = ({ t, locale }) => {
                     {t.resume.title}
                 </h3>
                 <a
-                    href={CV_PDF_BY_LANG[locale]}
+                    href={getCvUrl(locale)}
                     download
                     className={cn(
                         'inline-flex w-full items-center justify-center gap-2 rounded-xl border border-accent/60',

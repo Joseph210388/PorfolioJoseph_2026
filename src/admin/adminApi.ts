@@ -1,3 +1,10 @@
+import {
+    DEFAULT_ADMIN_PAGE_SIZE,
+    escapeIlikePattern,
+    paginateRange,
+    type AdminListParams,
+    type AdminPaginatedResult,
+} from './adminListTypes';
 import { supabase } from '../utils/supabase';
 import type { Locale } from '../i18n/translations';
 import type { Project, ProjectTranslation, Technology, WorkExperienceTranslation } from '../utils/supabase';
@@ -70,41 +77,91 @@ type AdminProjectRowFromDb = Project & {
     project_media: { id: number; url: string; is_thumbnail: boolean; order: number }[] | null;
 };
 
-export async function fetchAdminProjects() {
-    const { data: projects, error } = await supabase
+export type AdminProjectListItem = ReturnType<typeof mapAdminProjectRow>;
+
+function mapAdminProjectRow(raw: AdminProjectRowFromDb) {
+    const { project_translations, project_technologies, project_media, ...project } = raw;
+
+    const translations = project_translations ?? [];
+    const byLocale = (locale: Locale) => translations.find((t) => t.locale === locale) ?? null;
+    const media = [...(project_media ?? [])].sort((a, b) => a.order - b.order);
+
+    return {
+        ...project,
+        translationsEs: byLocale('es'),
+        translationsEn: byLocale('en'),
+        technology_ids: project_technologies?.map((t) => t.technology_id) ?? [],
+        media: media.map((m) => ({
+            clientId: `media-${m.id}`,
+            url: m.url,
+            is_thumbnail: m.is_thumbnail,
+        })),
+    };
+}
+
+const PROJECT_LIST_SELECT = `
+    *,
+    project_translations (*),
+    project_technologies (technology_id),
+    project_media (id, url, is_thumbnail, order)
+`;
+
+const PROJECT_LIST_SELECT_SEARCH = `
+    *,
+    project_translations!inner (*),
+    project_technologies (technology_id),
+    project_media (id, url, is_thumbnail, order)
+`;
+
+export type AdminProjectsListParams = AdminListParams & {
+    status?: 'all' | Project['status'];
+};
+
+export async function fetchAdminProjectsPaginated(
+    params: AdminProjectsListParams = { page: 1, pageSize: DEFAULT_ADMIN_PAGE_SIZE },
+): Promise<AdminPaginatedResult<AdminProjectListItem>> {
+    const page = Math.max(1, params.page);
+    const pageSize = params.pageSize;
+    const { from, to } = paginateRange(page, pageSize);
+    const term = params.search?.trim();
+    const pattern = term ? `%${escapeIlikePattern(term)}%` : null;
+
+    let query = supabase
         .from('projects')
-        .select(
-            `
-            *,
-            project_translations (*),
-            project_technologies (technology_id),
-            project_media (id, url, is_thumbnail, order)
-        `,
-        )
+        .select(term ? PROJECT_LIST_SELECT_SEARCH : PROJECT_LIST_SELECT, { count: 'exact' })
         .order('order', { ascending: true });
 
+    if (params.status && params.status !== 'all') {
+        query = query.eq('status', params.status);
+    }
+
+    if (pattern) {
+        query = query.ilike('project_translations.name', pattern);
+    }
+
+    const { data, error, count } = await query.range(from, to);
     if (error) throw error;
 
-    return (projects ?? []).map((raw) => {
-        const row = raw as AdminProjectRowFromDb;
-        const { project_translations, project_technologies, project_media, ...project } = row;
+    return {
+        items: (data ?? []).map((row) => mapAdminProjectRow(row as AdminProjectRowFromDb)),
+        total: count ?? 0,
+        page,
+        pageSize,
+    };
+}
 
-        const translations = project_translations ?? [];
-        const byLocale = (locale: Locale) => translations.find((t) => t.locale === locale) ?? null;
-        const media = [...(project_media ?? [])].sort((a, b) => a.order - b.order);
+/** Solo ids ordenados (reordenar filas sin cargar relaciones). */
+export async function fetchProjectsOrderIds(): Promise<number[]> {
+    const { data, error } = await supabase.from('projects').select('id').order('order', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => row.id);
+}
 
-        return {
-            ...project,
-            translationsEs: byLocale('es'),
-            translationsEn: byLocale('en'),
-            technology_ids: project_technologies?.map((t) => t.technology_id) ?? [],
-            media: media.map((m) => ({
-                clientId: `media-${m.id}`,
-                url: m.url,
-                is_thumbnail: m.is_thumbnail,
-            })),
-        };
-    });
+/** Listado completo de tecnologías para selects del formulario (tabla pequeña). */
+export async function fetchTechnologyOptions(): Promise<Technology[]> {
+    const { data, error } = await supabase.from('technologies').select('*').order('name', { ascending: true });
+    if (error) throw error;
+    return data ?? [];
 }
 
 export async function saveProject(id: number | null, form: ProjectFormData) {
@@ -200,24 +257,64 @@ export async function deleteProject(id: number) {
     if (error) throw error;
 }
 
-export async function fetchAdminExperience() {
-    const { data, error } = await supabase.from('work_experience').select('*').order('order', { ascending: true });
+type AdminExperienceRowFromDb = {
+    id: number;
+    company: string;
+    company_url: string | null;
+    date_start: string;
+    date_end: string | null;
+    order: number;
+    work_experience_translations: WorkExperienceTranslation[] | null;
+};
+
+export type AdminExperienceListItem = ReturnType<typeof mapAdminExperienceRow>;
+
+function mapAdminExperienceRow(raw: AdminExperienceRowFromDb) {
+    const { work_experience_translations, ...exp } = raw;
+    const translations = work_experience_translations ?? [];
+    return {
+        ...exp,
+        translationsEs: translations.find((t) => t.locale === 'es') ?? null,
+        translationsEn: translations.find((t) => t.locale === 'en') ?? null,
+    };
+}
+
+const EXPERIENCE_LIST_SELECT = `*, work_experience_translations (*)`;
+const EXPERIENCE_LIST_SELECT_SEARCH = `*, work_experience_translations!inner (*)`;
+
+export async function fetchAdminExperiencePaginated(
+    params: AdminListParams = { page: 1, pageSize: DEFAULT_ADMIN_PAGE_SIZE },
+): Promise<AdminPaginatedResult<AdminExperienceListItem>> {
+    const page = Math.max(1, params.page);
+    const pageSize = params.pageSize;
+    const { from, to } = paginateRange(page, pageSize);
+    const term = params.search?.trim();
+    const pattern = term ? `%${escapeIlikePattern(term)}%` : null;
+
+    let query = supabase
+        .from('work_experience')
+        .select(term ? EXPERIENCE_LIST_SELECT_SEARCH : EXPERIENCE_LIST_SELECT, { count: 'exact' })
+        .order('order', { ascending: true });
+
+    if (pattern) {
+        query = query.or(`company.ilike.${pattern},work_experience_translations.title.ilike.${pattern}`);
+    }
+
+    const { data, error, count } = await query.range(from, to);
     if (error) throw error;
 
-    return Promise.all(
-        (data ?? []).map(async (exp) => {
-            const { data: translations } = await supabase
-                .from('work_experience_translations')
-                .select('*')
-                .eq('experience_id', exp.id);
+    return {
+        items: (data ?? []).map((row) => mapAdminExperienceRow(row as AdminExperienceRowFromDb)),
+        total: count ?? 0,
+        page,
+        pageSize,
+    };
+}
 
-            return {
-                ...exp,
-                translationsEs: translations?.find((t) => t.locale === 'es') ?? null,
-                translationsEn: translations?.find((t) => t.locale === 'en') ?? null,
-            };
-        }),
-    );
+export async function fetchExperienceOrderIds(): Promise<number[]> {
+    const { data, error } = await supabase.from('work_experience').select('id').order('order', { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map((row) => row.id);
 }
 
 function tasksFromText(text: string): string[] {
@@ -274,10 +371,31 @@ export async function deleteExperience(id: number) {
     if (error) throw error;
 }
 
-export async function fetchAdminTechnologies() {
-    const { data, error } = await supabase.from('technologies').select('*').order('id', { ascending: true });
+export async function fetchAdminTechnologiesPaginated(
+    params: AdminListParams = { page: 1, pageSize: DEFAULT_ADMIN_PAGE_SIZE },
+): Promise<AdminPaginatedResult<Technology>> {
+    const page = Math.max(1, params.page);
+    const pageSize = params.pageSize;
+    const { from, to } = paginateRange(page, pageSize);
+    const term = params.search?.trim();
+    const pattern = term ? `%${escapeIlikePattern(term)}%` : null;
+
+    let query = supabase.from('technologies').select('*', { count: 'exact' }).order('id', { ascending: true });
+
+    if (pattern) {
+        const idFilter = /^\d+$/.test(term!) ? `id.eq.${term},` : '';
+        query = query.or(`${idFilter}name.ilike.${pattern},icon_url.ilike.${pattern},color.ilike.${pattern}`);
+    }
+
+    const { data, error, count } = await query.range(from, to);
     if (error) throw error;
-    return data ?? [];
+
+    return {
+        items: data ?? [],
+        total: count ?? 0,
+        page,
+        pageSize,
+    };
 }
 
 export async function saveTechnology(id: number | null, form: TechnologyFormData) {
@@ -321,24 +439,52 @@ export type AdminDashboardStats = {
     recentProjects: { id: number; name: string; status: Project['status']; featured: boolean }[];
 };
 
+async function countTableRows(
+    table: 'projects' | 'technologies' | 'work_experience' | 'categories',
+    filter?: { column: string; value: string | boolean },
+): Promise<number> {
+    let query = supabase.from(table).select('*', { count: 'exact', head: true });
+    if (filter) {
+        query = query.eq(filter.column, filter.value);
+    }
+    const { count, error } = await query;
+    if (error) throw error;
+    return count ?? 0;
+}
+
 export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats> {
-    const [projects, technologies, experience, categories] = await Promise.all([
-        fetchAdminProjects(),
-        fetchAdminTechnologies(),
-        fetchAdminExperience(),
-        fetchCategories(),
+    const [
+        projectsTotal,
+        projectsFinished,
+        projectsInProgress,
+        projectsPaused,
+        projectsFeatured,
+        technologiesTotal,
+        experienceTotal,
+        categoriesTotal,
+        recentResult,
+    ] = await Promise.all([
+        countTableRows('projects'),
+        countTableRows('projects', { column: 'status', value: 'finished' }),
+        countTableRows('projects', { column: 'status', value: 'in_progress' }),
+        countTableRows('projects', { column: 'status', value: 'paused' }),
+        countTableRows('projects', { column: 'featured', value: true }),
+        countTableRows('technologies'),
+        countTableRows('work_experience'),
+        countTableRows('categories'),
+        fetchAdminProjectsPaginated({ page: 1, pageSize: 5 }),
     ]);
 
     return {
-        projectsTotal: projects.length,
-        projectsFinished: projects.filter((p) => p.status === 'finished').length,
-        projectsInProgress: projects.filter((p) => p.status === 'in_progress').length,
-        projectsPaused: projects.filter((p) => p.status === 'paused').length,
-        projectsFeatured: projects.filter((p) => p.featured).length,
-        technologiesTotal: technologies.length,
-        experienceTotal: experience.length,
-        categoriesTotal: categories.length,
-        recentProjects: projects.slice(0, 5).map((p) => ({
+        projectsTotal,
+        projectsFinished,
+        projectsInProgress,
+        projectsPaused,
+        projectsFeatured,
+        technologiesTotal,
+        experienceTotal,
+        categoriesTotal,
+        recentProjects: recentResult.items.map((p) => ({
             id: p.id,
             name: p.translationsEs?.name ?? `Proyecto #${p.id}`,
             status: p.status,

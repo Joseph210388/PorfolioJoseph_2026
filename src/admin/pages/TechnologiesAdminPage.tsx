@@ -1,15 +1,23 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { AdminField, adminInputClass } from '../components/AdminField';
 import AdminModal from '../components/AdminModal';
 import { AdminModalFooter } from '../components/AdminModalFooter';
 import { AdminTableToolbar } from '../components/AdminTableToolbar';
+import { AdminPagination } from '../components/AdminPagination';
+import {
+    AdminScrollableTable,
+    adminTableHeadClass,
+    adminTableThClass,
+} from '../components/AdminScrollableTable';
 import {
     deleteTechnology,
-    fetchAdminTechnologies,
+    fetchAdminTechnologiesPaginated,
     saveTechnology,
     type TechnologyFormData,
 } from '../adminApi';
+import { DEFAULT_ADMIN_PAGE_SIZE, type AdminPageSize } from '../adminListTypes';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import type { Technology } from '../../utils/supabase';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
@@ -18,6 +26,9 @@ const emptyForm = (): TechnologyFormData => ({ name: '', icon_url: '', color: ''
 
 const TechnologiesAdminPage: React.FC = () => {
     const [items, setItems] = useState<Technology[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState<AdminPageSize>(DEFAULT_ADMIN_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -25,34 +36,33 @@ const TechnologiesAdminPage: React.FC = () => {
     const [form, setForm] = useState<TechnologyFormData>(emptyForm);
     const [showForm, setShowForm] = useState(false);
     const [query, setQuery] = useState('');
+    const debouncedQuery = useDebouncedValue(query);
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            setItems(await fetchAdminTechnologies());
+            const result = await fetchAdminTechnologiesPaginated({
+                page,
+                pageSize,
+                search: debouncedQuery,
+            });
+            setItems(result.items);
+            setTotal(result.total);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Error al cargar');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, pageSize, debouncedQuery]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedQuery, pageSize]);
 
     useEffect(() => {
         load();
     }, [load]);
-
-    const filteredItems = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        if (!q) return items;
-        return items.filter((tech) => {
-            const id = String(tech.id);
-            const name = tech.name.toLowerCase();
-            const icon = (tech.icon_url ?? '').toLowerCase();
-            const color = (tech.color ?? '').toLowerCase();
-            return id.includes(q) || name.includes(q) || icon.includes(q) || color.includes(q);
-        });
-    }, [items, query]);
 
     const closeForm = () => {
         setShowForm(false);
@@ -102,8 +112,8 @@ const TechnologiesAdminPage: React.FC = () => {
     };
 
     return (
-        <div>
-            {error ? <p className="mb-4 text-sm text-red-400">{error}</p> : null}
+        <div className="flex h-full min-h-0 flex-col">
+            {error ? <p className="mb-3 shrink-0 text-sm text-red-400">{error}</p> : null}
 
             <AdminModal
                 open={showForm}
@@ -127,8 +137,12 @@ const TechnologiesAdminPage: React.FC = () => {
             </AdminModal>
 
             <AdminTableToolbar
+                className="shrink-0"
                 query={query}
-                onQueryChange={setQuery}
+                onQueryChange={(value) => {
+                    setQuery(value);
+                    setPage(1);
+                }}
                 placeholder="Buscar tecnología..."
                 right={
                     <button
@@ -143,31 +157,45 @@ const TechnologiesAdminPage: React.FC = () => {
             />
 
             {loading ? (
-                <div className="flex justify-center py-12">
+                <div className="flex flex-1 items-center justify-center py-12">
                     <Spinner />
                 </div>
-            ) : items.length === 0 ? (
-                <p className="rounded-2xl border border-[var(--admin-border)] bg-white p-6 text-center text-sm text-[var(--admin-text-secondary)]">
-                    No hay tecnologías registradas.
-                </p>
-            ) : filteredItems.length === 0 ? (
-                <p className="rounded-2xl border border-[var(--admin-border)] bg-white p-6 text-center text-sm text-[var(--admin-text-secondary)]">
-                    No hay tecnologías que coincidan con la búsqueda.
-                </p>
+            ) : total === 0 && !debouncedQuery.trim() ? (
+                <AdminScrollableTable empty emptyMessage="No hay tecnologías registradas.">
+                    {null}
+                </AdminScrollableTable>
+            ) : total === 0 ? (
+                <AdminScrollableTable empty emptyMessage="No hay tecnologías que coincidan con la búsqueda.">
+                    {null}
+                </AdminScrollableTable>
             ) : (
-                <div className="overflow-x-auto rounded-2xl border border-[var(--admin-border)] bg-white">
+                <AdminScrollableTable
+                    footer={
+                        <AdminPagination
+                            page={page}
+                            pageSize={pageSize}
+                            total={total}
+                            onPageChange={setPage}
+                            onPageSizeChange={(size) => {
+                                setPageSize(size);
+                                setPage(1);
+                            }}
+                            idPrefix="technologies"
+                        />
+                    }
+                >
                     <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-                        <thead>
-                            <tr className="border-b border-[var(--admin-border)] bg-slate-50">
-                                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">ID</th>
-                                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">Nombre</th>
-                                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">Icono</th>
-                                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">Color</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">Acciones</th>
+                        <thead className={adminTableHeadClass}>
+                            <tr>
+                                <th className={adminTableThClass}>ID</th>
+                                <th className={adminTableThClass}>Nombre</th>
+                                <th className={adminTableThClass}>Icono</th>
+                                <th className={adminTableThClass}>Color</th>
+                                <th className={cn(adminTableThClass, 'text-right')}>Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {filteredItems.map((tech) => (
+                            {items.map((tech) => (
                                 <tr key={tech.id} className="transition-colors hover:bg-background/40">
                                     <td className="px-4 py-3 font-mono text-xs text-[var(--admin-text-muted)]">{tech.id}</td>
                                     <td className="px-4 py-3 font-medium text-[var(--admin-text)]">{tech.name}</td>
@@ -215,7 +243,7 @@ const TechnologiesAdminPage: React.FC = () => {
                             ))}
                         </tbody>
                     </table>
-                </div>
+                </AdminScrollableTable>
             )}
         </div>
     );

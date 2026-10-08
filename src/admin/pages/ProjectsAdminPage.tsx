@@ -1,26 +1,36 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ChevronDown, GripVertical, Languages, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { AdminField, adminInputClass } from '../components/AdminField';
 import {
     deleteProject,
-    fetchAdminProjects,
-    fetchAdminTechnologies,
+    fetchAdminProjectsPaginated,
     fetchCategories,
+    fetchProjectsOrderIds,
+    fetchTechnologyOptions,
     projectDescriptionToForm,
     saveProject,
     translationToForm,
     updateProjectsOrder,
+    type AdminProjectListItem,
     type ProjectFormData,
 } from '../adminApi';
+import { DEFAULT_ADMIN_PAGE_SIZE, type AdminPageSize } from '../adminListTypes';
 import type { Project, Technology } from '../../utils/supabase';
 import AdminModal from '../components/AdminModal';
 import { AdminProjectMediaEditor } from '../components/AdminProjectMediaEditor';
 import { AdminModalFooter } from '../components/AdminModalFooter';
+import { AdminPagination } from '../components/AdminPagination';
+import {
+    AdminScrollableTable,
+    adminTableHeadClass,
+    adminTableThClass,
+} from '../components/AdminScrollableTable';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { translateEsToEn } from '../utils/translateEsToEn';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
 
-type ProjectRow = Awaited<ReturnType<typeof fetchAdminProjects>>[number];
+type ProjectRow = AdminProjectListItem;
 type StatusFilter = 'all' | 'finished' | 'in_progress' | 'paused';
 
 const emptyForm = (): ProjectFormData => ({
@@ -57,6 +67,9 @@ const statusFilterOptions: { value: StatusFilter; label: string }[] = [
 
 const ProjectsAdminPage: React.FC = () => {
     const [items, setItems] = useState<ProjectRow[]>([]);
+    const [total, setTotal] = useState(0);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState<AdminPageSize>(DEFAULT_ADMIN_PAGE_SIZE);
     const [technologies, setTechnologies] = useState<Technology[]>([]);
     const [categories, setCategories] = useState<{ id: number; slug: string }[]>([]);
     const [loading, setLoading] = useState(true);
@@ -67,20 +80,30 @@ const ProjectsAdminPage: React.FC = () => {
     const [form, setForm] = useState<ProjectFormData>(emptyForm());
     const [showForm, setShowForm] = useState(false);
     const [query, setQuery] = useState('');
+    const debouncedQuery = useDebouncedValue(query);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [dragIndex, setDragIndex] = useState<number | null>(null);
     const [translatingAll, setTranslatingAll] = useState(false);
+
+    const canReorder =
+        !debouncedQuery.trim() && statusFilter === 'all' && total > 0 && total <= pageSize;
 
     const load = useCallback(async () => {
         setLoading(true);
         setPageError(null);
         try {
-            const [projects, techs, cats] = await Promise.all([
-                fetchAdminProjects(),
-                fetchAdminTechnologies(),
+            const [projectsPage, techs, cats] = await Promise.all([
+                fetchAdminProjectsPaginated({
+                    page,
+                    pageSize,
+                    search: debouncedQuery,
+                    status: statusFilter,
+                }),
+                fetchTechnologyOptions(),
                 fetchCategories(),
             ]);
-            setItems(projects);
+            setItems(projectsPage.items);
+            setTotal(projectsPage.total);
             setTechnologies(techs);
             setCategories(cats);
         } catch (err) {
@@ -88,21 +111,15 @@ const ProjectsAdminPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, pageSize, debouncedQuery, statusFilter]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedQuery, statusFilter, pageSize]);
 
     useEffect(() => {
         load();
     }, [load]);
-
-    const filteredItems = useMemo(() => {
-        const q = query.trim().toLowerCase();
-        return items.filter((row) => {
-            if (statusFilter !== 'all' && row.status !== statusFilter) return false;
-            if (!q) return true;
-            const name = row.translationsEs?.name ?? row.translationsEn?.name ?? '';
-            return name.toLowerCase().includes(q);
-        });
-    }, [items, query, statusFilter]);
 
     const closeForm = () => {
         setShowForm(false);
@@ -113,7 +130,7 @@ const ProjectsAdminPage: React.FC = () => {
     const openCreate = () => {
         setEditingId(null);
         setFormError(null);
-        setForm({ ...emptyForm(), order: items.length });
+        setForm({ ...emptyForm(), order: total });
         setShowForm(true);
     };
 
@@ -165,23 +182,19 @@ const ProjectsAdminPage: React.FC = () => {
     };
 
     const handleDrop = async (targetIndex: number) => {
-        if (dragIndex === null || dragIndex === targetIndex) return;
-        const reordered = [...filteredItems];
+        if (!canReorder || dragIndex === null || dragIndex === targetIndex) return;
+
+        const reordered = [...items];
         const [moved] = reordered.splice(dragIndex, 1);
         reordered.splice(targetIndex, 0, moved);
 
         const idOrder = reordered.map((r) => r.id);
-        const allIds = items.map((r) => r.id);
-        const remaining = allIds.filter((id) => !idOrder.includes(id));
-        const fullOrder = [...idOrder, ...remaining];
-
-        setItems((prev) => {
-            const map = new Map(prev.map((p) => [p.id, p]));
-            return fullOrder.map((id, index) => ({ ...map.get(id)!, order: index }));
-        });
 
         try {
-            await updateProjectsOrder(fullOrder);
+            const allIds = await fetchProjectsOrderIds();
+            const remaining = allIds.filter((id) => !idOrder.includes(id));
+            await updateProjectsOrder([...idOrder, ...remaining]);
+            await load();
         } catch (err) {
             setPageError(err instanceof Error ? err.message : 'Error al reordenar');
             await load();
@@ -230,8 +243,8 @@ const ProjectsAdminPage: React.FC = () => {
     };
 
     return (
-        <div className="text-[var(--admin-text)]">
-            {pageError ? <p className="mb-4 text-sm text-red-500">{pageError}</p> : null}
+        <div className="flex h-full min-h-0 flex-col text-[var(--admin-text)]">
+            {pageError ? <p className="mb-3 shrink-0 text-sm text-red-500">{pageError}</p> : null}
 
             <AdminModal
                 open={showForm}
@@ -390,13 +403,16 @@ const ProjectsAdminPage: React.FC = () => {
             </AdminModal>
 
             {/* Búsqueda a la izquierda; filtro y acción pegados a la derecha */}
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-3 flex shrink-0 flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative w-full shrink-0 sm:max-w-xs md:max-w-sm">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-text-muted)]" />
                     <input
                         type="search"
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e) => {
+                            setQuery(e.target.value);
+                            setPage(1);
+                        }}
                         placeholder="Buscar proyecto..."
                         className={cn(adminInputClass, 'pl-10')}
                     />
@@ -411,7 +427,10 @@ const ProjectsAdminPage: React.FC = () => {
                             <select
                                 id="proj-filter-status"
                                 value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                                onChange={(e) => {
+                                    setStatusFilter(e.target.value as StatusFilter);
+                                    setPage(1);
+                                }}
                                 className="w-[7.25rem] cursor-pointer appearance-none border-0 bg-transparent py-1 pl-0 pr-6 text-sm font-semibold text-[var(--admin-text)] focus:outline-none focus:ring-0"
                                 aria-label="Filtrar por estado"
                             >
@@ -439,98 +458,113 @@ const ProjectsAdminPage: React.FC = () => {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-16">
+                <div className="flex flex-1 items-center justify-center py-16">
                     <Spinner />
                 </div>
-            ) : filteredItems.length === 0 ? (
-                <p className="rounded-2xl border border-[var(--admin-border)] py-12 text-center text-sm text-[var(--admin-text-muted)]">
-                    No hay proyectos que coincidan con el filtro.
-                </p>
+            ) : total === 0 ? (
+                <AdminScrollableTable empty emptyMessage="No hay proyectos que coincidan con el filtro.">
+                    {null}
+                </AdminScrollableTable>
             ) : (
-                <div className="overflow-x-auto rounded-2xl border border-[var(--admin-border)]">
-                    <table className="w-full min-w-[560px] border-collapse text-left text-sm">
-                        <thead>
-                            <tr className="border-b border-[var(--admin-border)] bg-slate-50">
-                                <th className="w-24 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">
-                                    Orden
-                                </th>
-                                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">
-                                    Proyecto
-                                </th>
-                                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">
-                                    Estado
-                                </th>
-                                <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)]">
-                                    Acciones
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--admin-border)]">
-                            {filteredItems.map((row, index) => (
-                                <tr
-                                    key={row.id}
-                                    draggable
-                                    onDragStart={() => setDragIndex(index)}
-                                    onDragOver={(e) => e.preventDefault()}
-                                    onDrop={() => handleDrop(index)}
-                                    onDragEnd={() => setDragIndex(null)}
-                                    className={cn(
-                                        'bg-white transition-colors hover:bg-slate-50',
-                                        dragIndex === index && 'opacity-50',
-                                    )}
-                                >
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2 text-[var(--admin-text-muted)]">
-                                            <GripVertical className="h-4 w-4 shrink-0 cursor-grab active:cursor-grabbing" aria-hidden />
-                                            <span className="font-mono text-xs">{String(row.order).padStart(2, '0')}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 font-medium text-[var(--admin-text)]">
-                                        {row.translationsEs?.name ?? row.translationsEn?.name ?? `Proyecto #${row.id}`}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <span
-                                            className={cn(
-                                                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium',
-                                                statusBadgeClass[row.status],
-                                            )}
-                                        >
-                                            {row.status === 'finished' ? (
-                                                <span className="h-1.5 w-1.5 rounded-full bg-[var(--admin-accent)]" aria-hidden />
-                                            ) : null}
-                                            {statusLabels[row.status]}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex justify-end gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => openEdit(row)}
-                                                aria-label="Editar"
-                                                className="rounded-lg p-2 text-[var(--admin-text-muted)] transition-colors hover:bg-slate-100 hover:text-[var(--admin-accent)]"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDelete(row.id)}
-                                                aria-label="Eliminar"
-                                                className="rounded-lg p-2 text-[var(--admin-text-muted)] transition-colors hover:bg-red-50 hover:text-red-500"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </td>
+                <>
+                    <AdminScrollableTable
+                        footer={
+                            <AdminPagination
+                                page={page}
+                                pageSize={pageSize}
+                                total={total}
+                                onPageChange={setPage}
+                                onPageSizeChange={(size) => {
+                                    setPageSize(size);
+                                    setPage(1);
+                                }}
+                                idPrefix="projects"
+                            />
+                        }
+                    >
+                        <table className="w-full min-w-[560px] border-collapse text-left text-sm">
+                            <thead className={adminTableHeadClass}>
+                                <tr>
+                                    <th className={cn(adminTableThClass, 'w-24')}>Orden</th>
+                                    <th className={adminTableThClass}>Proyecto</th>
+                                    <th className={adminTableThClass}>Estado</th>
+                                    <th className={cn(adminTableThClass, 'w-28 text-right')}>Acciones</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--admin-border)]">
+                                {items.map((row, index) => (
+                                    <tr
+                                        key={row.id}
+                                        draggable={canReorder}
+                                        onDragStart={() => canReorder && setDragIndex(index)}
+                                        onDragOver={(e) => canReorder && e.preventDefault()}
+                                        onDrop={() => handleDrop(index)}
+                                        onDragEnd={() => setDragIndex(null)}
+                                        className={cn(
+                                            'bg-white transition-colors hover:bg-slate-50',
+                                            dragIndex === index && 'opacity-50',
+                                        )}
+                                    >
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2 text-[var(--admin-text-muted)]">
+                                                <GripVertical
+                                                    className={cn(
+                                                        'h-4 w-4 shrink-0',
+                                                        canReorder ? 'cursor-grab active:cursor-grabbing' : 'opacity-30',
+                                                    )}
+                                                    aria-hidden
+                                                />
+                                                <span className="font-mono text-xs">{String(row.order).padStart(2, '0')}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3 font-medium text-[var(--admin-text)]">
+                                            {row.translationsEs?.name ?? row.translationsEn?.name ?? `Proyecto #${row.id}`}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span
+                                                className={cn(
+                                                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium',
+                                                    statusBadgeClass[row.status],
+                                                )}
+                                            >
+                                                {row.status === 'finished' ? (
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--admin-accent)]" aria-hidden />
+                                                ) : null}
+                                                {statusLabels[row.status]}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex justify-end gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openEdit(row)}
+                                                    aria-label="Editar"
+                                                    className="rounded-lg p-2 text-[var(--admin-text-muted)] transition-colors hover:bg-slate-100 hover:text-[var(--admin-accent)]"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(row.id)}
+                                                    aria-label="Eliminar"
+                                                    className="rounded-lg p-2 text-[var(--admin-text-muted)] transition-colors hover:bg-red-50 hover:text-red-500"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </AdminScrollableTable>
+                    <p className="mt-2 shrink-0 text-xs text-[var(--admin-text-muted)]">
+                        {canReorder
+                            ? 'Arrastra las filas para cambiar el orden de aparición en el portfolio.'
+                            : 'Para reordenar, quita búsqueda y filtros y muestra todos los proyectos en una sola página (sube «Por página»).'}
+                    </p>
+                </>
             )}
-
-            <p className="mt-4 text-xs text-[var(--admin-text-muted)]">
-                Arrastra las filas para cambiar el orden de aparición en el portfolio.
-            </p>
         </div>
     );
 };
