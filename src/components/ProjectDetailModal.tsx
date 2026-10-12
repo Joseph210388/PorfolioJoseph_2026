@@ -198,7 +198,7 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/60 p-3 backdrop-blur-sm sm:p-5 lg:overflow-hidden lg:p-4 xl:p-5"
+            className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-black/60 p-3 backdrop-blur-sm sm:p-5 lg:p-4 xl:p-5"
             role="dialog"
             aria-modal="true"
             aria-label={project.translations?.name ?? 'Project details'}
@@ -214,8 +214,11 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
         >
             <div
                 className={cn(
-                    'relative my-auto grid w-full overflow-hidden rounded-2xl bg-card-background shadow-2xl ring-1 ring-white/10',
-                    'max-w-3xl md:max-h-[min(92dvh,56rem)] md:max-w-[min(96vw,72rem)] md:grid-cols-[minmax(0,1.25fr)_minmax(16rem,1fr)]',
+                    // En móvil el popup entero hace scroll; en md+ solo la columna de texto.
+                    'relative my-auto grid w-full rounded-2xl bg-card-background shadow-2xl ring-1 ring-white/10',
+                    'max-h-[calc(100dvh-1.5rem)] overflow-y-auto overscroll-contain touch-pan-y',
+                    'max-w-3xl sm:max-h-[calc(100dvh-2.5rem)]',
+                    'md:max-h-[min(92dvh,56rem)] md:max-w-[min(96vw,72rem)] md:overflow-hidden md:touch-auto md:grid-cols-[minmax(0,1.25fr)_minmax(16rem,1fr)]',
                     'lg:max-w-[min(96vw,88rem)] lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,1fr)]',
                     galleryExpanded && 'md:grid-cols-1 lg:grid-cols-1',
                 )}
@@ -363,7 +366,7 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                 )}
 
                 {!galleryExpanded ? (
-                    <div className="min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6 md:max-h-[min(92dvh,56rem)] lg:p-7 lg:pr-12">
+                    <div className="min-h-0 overflow-visible p-5 sm:p-6 md:max-h-[min(92dvh,56rem)] md:overflow-y-auto md:overscroll-contain lg:p-7 lg:pr-12">
                     {/* Tipo + estado; padding derecho para no chocar con el cierre */}
                     <div className="flex min-w-0 flex-wrap items-center gap-2 pr-12 sm:gap-3">
                         {project.categoryName ? (

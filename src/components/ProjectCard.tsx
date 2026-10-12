@@ -55,6 +55,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 <img
                     src={getProjectImageUrl(project)}
                     alt={project.translations?.name ?? 'Project image'}
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full max-w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                 />
             </div>
