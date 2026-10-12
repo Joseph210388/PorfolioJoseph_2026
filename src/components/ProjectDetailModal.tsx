@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Maximize2 } from 'lucide-react';
 import { GithubToolIcon, ExternalLinkIcon } from './icons';
 import { getOrderedProjectImages, getProjectImageUrl } from '../utils/projectImage';
 import { cn } from '@/lib/utils';
@@ -50,10 +50,17 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
         [project],
     );
     const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [thumbsNeedScroll, setThumbsNeedScroll] = useState(false);
+    const [galleryExpanded, setGalleryExpanded] = useState(false);
+    const thumbListRef = useRef<HTMLDivElement>(null);
+    const galleryExpandedRef = useRef(false);
+
+    galleryExpandedRef.current = galleryExpanded;
 
     useEffect(() => {
         if (!open) return;
         setActiveImageIndex(0);
+        setGalleryExpanded(false);
     }, [open, project?.id]);
 
     useEffect(() => {
@@ -61,7 +68,24 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
 
         const onKeyDown = (ev: KeyboardEvent) => {
             if (ev.key === 'Escape') {
+                // Primero se cierra la vista ampliada; el siguiente Escape cierra el popup.
+                if (galleryExpandedRef.current) {
+                    setGalleryExpanded(false);
+                    return;
+                }
                 onClose();
+                return;
+            }
+            if (ev.key === 'ArrowLeft') {
+                ev.preventDefault();
+                setActiveImageIndex((i) => (i <= 0 ? Math.max(galleryImages.length, 1) - 1 : i - 1));
+            }
+            if (ev.key === 'ArrowRight') {
+                ev.preventDefault();
+                setActiveImageIndex((i) => {
+                    const total = Math.max(galleryImages.length, 1);
+                    return i >= total - 1 ? 0 : i + 1;
+                });
             }
         };
 
@@ -97,7 +121,44 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                 root.inert = prevInert;
             }
         };
-    }, [open, onClose]);
+    }, [open, onClose, galleryImages.length]);
+
+    useEffect(() => {
+        const activeThumb = thumbListRef.current?.querySelector<HTMLElement>('[data-active-thumb="true"]');
+        activeThumb?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }, [activeImageIndex]);
+
+    useEffect(() => {
+        const el = thumbListRef.current;
+        if (!open || !el) {
+            setThumbsNeedScroll(false);
+            return;
+        }
+
+        const update = () => {
+            setThumbsNeedScroll(
+                el.scrollHeight > el.clientHeight + 4 || el.scrollWidth > el.clientWidth + 4,
+            );
+        };
+
+        const frame = window.requestAnimationFrame(update);
+        const observer = new ResizeObserver(update);
+        observer.observe(el);
+        window.addEventListener('resize', update);
+        return () => {
+            window.cancelAnimationFrame(frame);
+            observer.disconnect();
+            window.removeEventListener('resize', update);
+        };
+    }, [open, galleryImages.length, activeImageIndex]);
+
+    useEffect(() => {
+        const collapseOnMobile = () => {
+            if (window.innerWidth < 768) setGalleryExpanded(false);
+        };
+        window.addEventListener('resize', collapseOnMobile);
+        return () => window.removeEventListener('resize', collapseOnMobile);
+    }, []);
 
     if (!project) {
         return null;
@@ -122,74 +183,189 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
     const showPrev = () => setActiveImageIndex((i) => (i <= 0 ? images.length - 1 : i - 1));
     const showNext = () => setActiveImageIndex((i) => (i >= images.length - 1 ? 0 : i + 1));
 
+    const scrollThumbs = (direction: -1 | 1) => {
+        thumbListRef.current?.scrollBy({
+            top: direction * 80,
+            left: direction * 80,
+            behavior: 'smooth',
+        });
+    };
+
+    const toggleGalleryExpanded = () => {
+        if (window.innerWidth < 768) return;
+        setGalleryExpanded((current) => !current);
+    };
+
     return createPortal(
         <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm sm:p-6"
+            className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto bg-black/60 p-3 backdrop-blur-sm sm:p-5 lg:overflow-hidden lg:p-4 xl:p-5"
             role="dialog"
             aria-modal="true"
             aria-label={project.translations?.name ?? 'Project details'}
             onMouseDown={(e) => {
-                if (e.target === e.currentTarget) onClose();
+                if (e.target !== e.currentTarget) return;
+                // Fuera del popup: si la foto está ampliada, se vuelve a la ficha; si no, se cierra.
+                if (galleryExpandedRef.current) {
+                    setGalleryExpanded(false);
+                    return;
+                }
+                onClose();
             }}
         >
             <div
-                className="my-auto flex w-full max-w-3xl max-h-[min(92dvh,880px)] flex-col overflow-hidden rounded-2xl bg-card-background shadow-2xl ring-1 ring-white/10"
+                className={cn(
+                    'relative my-auto grid w-full overflow-hidden rounded-2xl bg-card-background shadow-2xl ring-1 ring-white/10',
+                    'max-w-3xl md:max-h-[min(92dvh,56rem)] md:max-w-[min(96vw,72rem)] md:grid-cols-[minmax(0,1.25fr)_minmax(16rem,1fr)]',
+                    'lg:max-w-[min(96vw,88rem)] lg:grid-cols-[minmax(0,1.45fr)_minmax(20rem,1fr)]',
+                    galleryExpanded && 'md:grid-cols-1 lg:grid-cols-1',
+                )}
                 onMouseDown={(e) => e.stopPropagation()}
             >
-                <div className="relative shrink-0 bg-background">
-                    <img
-                        src={images[safeIndex]}
-                        alt={project.translations?.name ?? 'Project image'}
-                        className="max-h-[min(28vh,220px)] w-full object-cover sm:max-h-[min(36vh,280px)]"
-                    />
+                <div className="flex min-h-0 flex-col gap-3 p-3 sm:p-4 lg:h-full lg:min-h-[28rem] lg:flex-row lg:items-stretch lg:gap-3 lg:p-5">
                     {hasMultipleImages ? (
-                        <>
-                            <button
-                                type="button"
-                                onClick={showPrev}
-                                className="absolute left-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/70"
-                                aria-label="Imagen anterior"
+                        <div
+                            className={cn(
+                                // En móvil basta con las flechas; las miniaturas vuelven desde tablet.
+                                'order-2 hidden min-h-0 items-center gap-1 md:flex lg:order-1 lg:w-[4.75rem] lg:shrink-0 lg:flex-col',
+                                !thumbsNeedScroll && 'lg:justify-center',
+                            )}
+                        >
+                            {thumbsNeedScroll ? (
+                                <button
+                                    type="button"
+                                    onClick={() => scrollThumbs(-1)}
+                                    className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-text-muted transition-colors hover:border-accent/50 hover:text-accent lg:inline-flex"
+                                    aria-label="Miniaturas anteriores"
+                                >
+                                    <ChevronUp className="h-4 w-4" />
+                                </button>
+                            ) : null}
+                            <div
+                                ref={thumbListRef}
+                                className="flex min-w-0 flex-1 gap-2 overflow-x-auto overscroll-contain lg:max-h-full lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto"
                             >
-                                <ChevronLeft className="h-5 w-5" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={showNext}
-                                className="absolute right-14 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/70 sm:right-16"
-                                aria-label="Imagen siguiente"
-                            >
-                                <ChevronRight className="h-5 w-5" />
-                            </button>
-                            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
-                                {images.map((_, index) => (
+                                {images.map((src, index) => (
                                     <button
-                                        key={index}
+                                        key={`${src}-${index}`}
                                         type="button"
+                                        data-active-thumb={index === safeIndex ? 'true' : undefined}
                                         onClick={() => setActiveImageIndex(index)}
                                         aria-label={`Imagen ${index + 1}`}
+                                        aria-current={index === safeIndex ? true : undefined}
                                         className={cn(
-                                            'h-2 w-2 rounded-full transition-colors',
-                                            index === safeIndex ? 'bg-white' : 'bg-white/45 hover:bg-white/70',
+                                            'h-14 w-14 shrink-0 overflow-hidden rounded-xl border bg-background transition-colors sm:h-16 sm:w-16',
+                                            index === safeIndex
+                                                ? 'border-accent ring-2 ring-accent/30'
+                                                : 'border-border hover:border-accent/50',
                                         )}
-                                    />
+                                    >
+                                        <img
+                                            src={src}
+                                            alt=""
+                                            className="h-full w-full object-cover"
+                                        />
+                                    </button>
                                 ))}
                             </div>
-                        </>
+                            {thumbsNeedScroll ? (
+                                <button
+                                    type="button"
+                                    onClick={() => scrollThumbs(1)}
+                                    className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border text-text-muted transition-colors hover:border-accent/50 hover:text-accent lg:inline-flex"
+                                    aria-label="Miniaturas siguientes"
+                                >
+                                    <ChevronDown className="h-4 w-4" />
+                                </button>
+                            ) : null}
+                        </div>
                     ) : null}
+
+                    <div
+                        className={cn(
+                            'relative order-1 min-h-0 flex-1 overflow-hidden rounded-xl bg-background p-2 sm:p-3 lg:order-2 lg:p-3 md:cursor-zoom-in',
+                            galleryExpanded && 'md:min-h-[min(72dvh,42rem)] md:cursor-zoom-out',
+                        )}
+                        onClick={toggleGalleryExpanded}
+                    >
+                        <img
+                            src={images[safeIndex]}
+                            alt={project.translations?.name ?? 'Project image'}
+                            className={cn(
+                                'pointer-events-none h-52 w-full rounded-lg sm:h-64 md:h-80 lg:h-full lg:min-h-[24rem]',
+                                galleryExpanded
+                                    ? 'object-contain object-center md:h-full md:min-h-[min(70dvh,40rem)]'
+                                    : 'object-cover object-top',
+                            )}
+                        />
+                        {!galleryExpanded ? (
+                            <button
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    toggleGalleryExpanded();
+                                }}
+                                className="absolute bottom-3 right-3 z-[2] hidden h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/70 md:inline-flex"
+                                aria-label={tp.expandImage}
+                                title={tp.expandImage}
+                            >
+                                <Maximize2 className="h-4 w-4" aria-hidden />
+                            </button>
+                        ) : null}
+                        {hasMultipleImages ? (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        showPrev();
+                                    }}
+                                    className="absolute left-2 top-1/2 z-[2] inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/70 sm:left-3 sm:h-10 sm:w-10"
+                                    aria-label="Imagen anterior"
+                                >
+                                    <ChevronLeft className="h-5 w-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        showNext();
+                                    }}
+                                    className="absolute right-2 top-1/2 z-[2] inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/70 sm:right-3 sm:h-10 sm:w-10"
+                                    aria-label="Imagen siguiente"
+                                >
+                                    <ChevronRight className="h-5 w-5" />
+                                </button>
+                            </>
+                        ) : null}
+                    </div>
+                </div>
+
+                {galleryExpanded ? (
+                    <button
+                        type="button"
+                        onClick={() => setGalleryExpanded(false)}
+                        className="absolute right-3 top-3 z-20 hidden max-w-[min(100%-1.5rem,20rem)] items-center gap-2 rounded-full bg-black/70 px-3.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black/80 md:inline-flex lg:right-4 lg:top-4"
+                        aria-label={tp.collapseImage}
+                    >
+                        <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
+                        <span className="truncate">{tp.collapseImage}</span>
+                    </button>
+                ) : (
                     <button
                         type="button"
                         onClick={onClose}
-                        className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/70"
+                        className="absolute right-3 top-3 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/70 lg:right-4 lg:top-4"
                         aria-label={closeLabel}
                         title={closeLabel}
                     >
                         ✕
                     </button>
-                </div>
+                )}
 
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8">
-                    {/* Tipo + estado */}
-                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                {!galleryExpanded ? (
+                    <div className="min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6 md:max-h-[min(92dvh,56rem)] lg:p-7 lg:pr-12">
+                    {/* Tipo + estado; padding derecho para no chocar con el cierre */}
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 pr-12 sm:gap-3">
                         {project.categoryName ? (
                             <span className="text-xs font-bold uppercase tracking-wider text-accent">
                                 {project.categoryName}
@@ -209,45 +385,42 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                         </span>
                     </div>
 
-                    {/* Título; debajo descripción | botones GitHub / demo */}
-                    <div className="mt-4 grid gap-x-6 gap-y-5 sm:mt-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-x-8">
-                        <h3 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl lg:col-span-2">
-                            {project.translations?.name ?? 'Unnamed project'}
-                        </h3>
+                    <h3 className="mt-4 pr-10 text-2xl font-bold tracking-tight text-text-primary sm:mt-5 sm:text-3xl">
+                        {project.translations?.name ?? 'Unnamed project'}
+                    </h3>
 
-                        <p className="whitespace-pre-line text-sm leading-relaxed text-text-secondary sm:text-base lg:col-start-1 lg:row-start-2">
-                            {bodyText}
-                        </p>
+                    {(project.github_url || project.live_url) ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                            {project.github_url ? (
+                                <a
+                                    href={project.github_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={projectLinkButtonClass}
+                                >
+                                    <GithubToolIcon className="h-4 w-4 shrink-0" />
+                                    {sourceCodeLabel}
+                                </a>
+                            ) : null}
+                            {project.live_url ? (
+                                <a
+                                    href={project.live_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={projectLinkButtonClass}
+                                >
+                                    <ExternalLinkIcon className="h-4 w-4 shrink-0" />
+                                    {viewProjectLabel}
+                                </a>
+                            ) : null}
+                        </div>
+                    ) : null}
 
-                        {(project.github_url || project.live_url) ? (
-                            <div className="flex flex-col items-stretch gap-2 sm:items-end lg:col-start-2 lg:row-start-2 lg:min-w-[9.5rem]">
-                                {project.github_url ? (
-                                    <a
-                                        href={project.github_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={projectLinkButtonClass}
-                                    >
-                                        <GithubToolIcon className="h-4 w-4 shrink-0" />
-                                        {sourceCodeLabel}
-                                    </a>
-                                ) : null}
-                                {project.live_url ? (
-                                    <a
-                                        href={project.live_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={projectLinkButtonClass}
-                                    >
-                                        <ExternalLinkIcon className="h-4 w-4 shrink-0" />
-                                        {viewProjectLabel}
-                                    </a>
-                                ) : null}
-                            </div>
-                        ) : null}
-                    </div>
+                    <p className="mt-5 whitespace-pre-line text-sm leading-relaxed text-text-secondary sm:text-base">
+                        {bodyText}
+                    </p>
 
-                    {/* Tecnologías: bloque propio a ancho completo, debajo de descripción y botones */}
+                    {/* Tecnologías debajo de la descripción, a todo el ancho de la columna */}
                     <section className="mt-6 w-full border-t border-border/20 pt-5">
                         <h4 className="mb-3 text-sm font-semibold text-text-primary">{tp.technologies}</h4>
                         {project.technologies.length > 0 ? (
@@ -264,7 +437,8 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
                             <p className="text-sm text-text-muted">{tp.noTechnologies}</p>
                         )}
                     </section>
-                </div>
+                    </div>
+                ) : null}
             </div>
         </div>,
         document.body

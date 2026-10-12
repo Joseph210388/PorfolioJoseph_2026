@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { AdminField, adminInputClass } from './components/AdminField';
-import Button from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
 const AdminLogin: React.FC = () => {
     const { user, loading, signIn } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
@@ -21,8 +21,15 @@ const AdminLogin: React.FC = () => {
         e.preventDefault();
         setSubmitting(true);
         setError(null);
+        // Supabase Auth hashea la contraseña en el servidor (bcrypt); nunca la guardamos en claro aquí.
         const { error: signInError } = await signIn(email.trim(), password);
-        if (signInError) setError(signInError);
+        if (signInError) {
+            const isInvalidCreds = /invalid login credentials/i.test(signInError);
+            setError(isInvalidCreds ? 'Email o contraseña incorrectos.' : signInError);
+        }
+        // No dejar la contraseña en el estado del formulario tras el intento.
+        setPassword('');
+        setShowPassword(false);
         setSubmitting(false);
     };
 
@@ -35,49 +42,75 @@ const AdminLogin: React.FC = () => {
             >
                 <div className="mb-8 text-center">
                     <h1 className="text-2xl font-bold tracking-tight text-[var(--admin-text)]">Panel Admin</h1>
-                    <p className="mt-2 text-sm text-[var(--admin-text-muted)]">Inicia sesión para gestionar el portfolio</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-5"
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                >
                     <AdminField label="Email" htmlFor="admin-email">
                         <input
                             id="admin-email"
+                            name="admin-email"
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            autoComplete="email"
+                            autoComplete="off"
+                            autoCapitalize="none"
+                            spellCheck={false}
                             className={adminInputClass}
                             placeholder="tu@email.com"
                         />
                     </AdminField>
 
                     <AdminField label="Contraseña" htmlFor="admin-password">
-                        <input
-                            id="admin-password"
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            autoComplete="current-password"
-                            className={adminInputClass}
-                        />
+                        <div className="relative">
+                            <input
+                                id="admin-password"
+                                name="admin-password"
+                                type={showPassword ? 'text' : 'password'}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                autoComplete="new-password"
+                                className={cn(adminInputClass, 'pr-11')}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[var(--admin-text-muted)] transition-colors hover:bg-slate-100 hover:text-[var(--admin-text)]"
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="h-4 w-4" aria-hidden />
+                                ) : (
+                                    <Eye className="h-4 w-4" aria-hidden />
+                                )}
+                            </button>
+                        </div>
                     </AdminField>
 
                     {error ? (
-                        <p className="rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-400">
+                        <p className="rounded-xl border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-500" role="alert">
                             {error}
                         </p>
                     ) : null}
 
-                    <Button
+                    <button
                         type="submit"
-                        loading={submitting || loading}
-                        className="w-full rounded-xl bg-[var(--admin-accent)] text-white hover:bg-[var(--admin-accent-hover)]"
-                        iconLeft={<LogIn className="h-4 w-4" />}
+                        disabled={submitting || loading}
+                        className={cn(
+                            'inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#ec4869] px-4 py-2.5 text-sm font-semibold text-white transition-colors',
+                            'hover:bg-[#d93d5c] disabled:cursor-not-allowed disabled:opacity-60',
+                        )}
                     >
-                        Entrar
-                    </Button>
+                        <LogIn className="h-4 w-4" aria-hidden />
+                        {submitting || loading ? 'Entrando…' : 'Entrar'}
+                    </button>
                 </form>
             </div>
         </div>

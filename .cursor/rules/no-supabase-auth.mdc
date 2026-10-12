@@ -1,0 +1,13 @@
+---
+description: Portfolio — prohibido Supabase Auth (decisión explícita)
+alwaysApply: true
+---
+
+# Sin Supabase Auth
+
+Decisión de producto **explícita** (Joseph / Notion hub Portfolio, 2026-10-12), alineada con DINEO:
+
+- **NO** usar Supabase Auth (GoTrue): ni `signInWithPassword`, ni usuarios en `auth.users` como diseño deseado, ni documentar Auth como stack válido.
+- Supabase en este repo = **datos + Storage** (y lo que se acuerde), no identidad.
+- El login admin actual aún llama a Auth: es **deuda técnica**. Al tocar admin/auth, planificar sustitución por sesión propia (u otro esquema acordado), no “arreglar” asumiendo Auth.
+- **Nunca** forzar cambio de contraseña del usuario sin pedirlo. Si el acceso se rompe, restaurar o migrar; no inventar claves temporales salvo emergencia acordada.

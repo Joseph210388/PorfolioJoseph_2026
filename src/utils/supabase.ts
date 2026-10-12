@@ -10,6 +10,15 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseKey);
  * Cliente Supabase. Si no hay env, se usa un placeholder para no romper el import;
  * la UI debe comprobar `isSupabaseConfigured` antes de usarlo.
  */
+/**
+ * Sesión en sessionStorage (se borra al cerrar la pestaña).
+ * Evita persistir tokens en localStorage / “caché” del navegador.
+ */
+function createAuthStorage(): Storage | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return window.sessionStorage;
+}
+
 export const supabase: SupabaseClient = createClient(
   supabaseUrl || 'https://placeholder.supabase.co',
   supabaseKey || 'placeholder-key',
@@ -18,6 +27,8 @@ export const supabase: SupabaseClient = createClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      storage: createAuthStorage(),
+      storageKey: 'portfolio-admin-auth',
     },
   },
 );

@@ -47,6 +47,8 @@ export const en = {
         sourceCode: 'Source Code',
         readMore: 'Read more',
         close: 'Close',
+        expandImage: 'Expand image',
+        collapseImage: 'Back to project info',
         technologies: 'Technologies',
         searchPlaceholder: 'Search projects…',
         clearFilters: 'Clear',

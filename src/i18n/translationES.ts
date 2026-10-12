@@ -47,6 +47,8 @@ export const es = {
         sourceCode: 'Código Fuente',
         readMore: 'Leer más',
         close: 'Cerrar',
+        expandImage: 'Ampliar imagen',
+        collapseImage: 'Volver a la información',
         technologies: 'Tecnologías',
         searchPlaceholder: 'Buscar proyectos…',
         clearFilters: 'Limpiar',
