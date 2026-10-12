@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Locale } from '../i18n/translations';
 import { useSiteSettings } from '../hooks/useSiteSettings';
 
-const CONTACT_EMAIL = 'josephvalderrama2103@icloud.com';
+const CONTACT_EMAIL = 'josephvalderrama2103@gmail.com';
 
 const SOCIAL_LINKS = [
     { href: 'https://github.com/Joseph210388', label: 'GitHub', icon: <GithubIcon /> },

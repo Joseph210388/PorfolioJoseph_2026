@@ -5,7 +5,7 @@ const SocialLinks: React.FC = () => {
     const socialMedia = [
         { icon: <GithubIcon />, href: 'https://github.com/Joseph210388', label: 'GitHub' },
         { icon: <LinkedinIcon />, href: 'https://es.linkedin.com/in/joseph-valderrama', label: 'LinkedIn' },
-        { icon: <MailIcon />, href: 'mailto:josephvalderrama2103@icloud.com', label: 'Email' },
+        { icon: <MailIcon />, href: 'mailto:josephvalderrama2103@gmail.com', label: 'Email' },
     ];
 
     return (
