@@ -7,6 +7,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProjectsAdminPage from './pages/ProjectsAdminPage';
 import ExperienceAdminPage from './pages/ExperienceAdminPage';
 import TechnologiesAdminPage from './pages/TechnologiesAdminPage';
+import SettingsAdminPage from './pages/SettingsAdminPage';
 
 const AdminApp: React.FC = () => (
     <Routes>
@@ -17,6 +18,7 @@ const AdminApp: React.FC = () => (
                 <Route path="projects" element={<ProjectsAdminPage />} />
                 <Route path="experience" element={<ExperienceAdminPage />} />
                 <Route path="technologies" element={<TechnologiesAdminPage />} />
+                <Route path="settings" element={<SettingsAdminPage />} />
             </Route>
         </Route>
         <Route index element={<Navigate to="dashboard" replace />} />

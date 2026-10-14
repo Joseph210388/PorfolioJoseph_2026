@@ -17,7 +17,9 @@ interface HeroProps {
 }
 
 const Hero: React.FC<HeroProps> = ({ language, t }) => {
-    const { getCvUrl } = useSiteSettings();
+    const { getCvUrl, getDisplayName, getProfileImageUrl } = useSiteSettings();
+    const displayName = getDisplayName();
+    const profileImageUrl = getProfileImageUrl();
 
     const handleScrollToContact = (event: React.MouseEvent<HTMLAnchorElement>) => {
         event.preventDefault();
@@ -32,7 +34,7 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
                     <div className="animate-fade-in-up">
                         <p className="text-accent text-lg font-medium mb-2">{t.greeting}</p>
                         <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-text-primary leading-tight">
-                            {t.name} <span className="text-accent">Joseph Valderrama</span>.
+                            {t.name} <span className="text-accent">{displayName}</span>.
                         </h1>
                         <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-text-secondary mt-2 leading-snug">
                             {t.subtitle}
@@ -60,9 +62,9 @@ const Hero: React.FC<HeroProps> = ({ language, t }) => {
                     <div className="hidden lg:flex justify-center items-center animate-fade-in">
                         <div className="w-80 h-80 lg:w-96 lg:h-96 rounded-full bg-card-background border-2 border-border shadow-2xl overflow-hidden">
                             <img
-                                src="/img/profile.jpeg"
-                                alt="Joseph Valderrama"
-                                className="w-full h-full object-cover transform"
+                                src={profileImageUrl}
+                                alt={displayName}
+                                className="h-full w-full max-w-full object-cover"
                             />
                         </div>
                     </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
+import { SiteSettingsProvider } from './hooks/useSiteSettings';
 import PortfolioApp from './PortfolioApp';
 import AdminApp from './admin/AdminApp';
 import { isSupabaseConfigured } from './utils/supabase';
@@ -33,12 +34,14 @@ const App: React.FC = () => {
 
     return (
         <AuthProvider>
-            <BrowserRouter basename={routerBasename}>
-                <Routes>
-                    <Route path="/admin/*" element={<AdminApp />} />
-                    <Route path="/*" element={<PortfolioApp />} />
-                </Routes>
-            </BrowserRouter>
+            <SiteSettingsProvider>
+                <BrowserRouter basename={routerBasename}>
+                    <Routes>
+                        <Route path="/admin/*" element={<AdminApp />} />
+                        <Route path="/*" element={<PortfolioApp />} />
+                    </Routes>
+                </BrowserRouter>
+            </SiteSettingsProvider>
         </AuthProvider>
     );
 };

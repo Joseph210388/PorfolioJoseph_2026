@@ -5,11 +5,10 @@ import { cn } from '@/lib/utils';
 interface AdminTopBarProps {
     title: string;
     description?: string;
-    email?: string | null;
     onMenuClick?: () => void;
 }
 
-export const AdminTopBar: React.FC<AdminTopBarProps> = ({ title, description, email, onMenuClick }) => (
+export const AdminTopBar: React.FC<AdminTopBarProps> = ({ title, description, onMenuClick }) => (
     <header
         className={cn(
             'flex shrink-0 items-center justify-between gap-4 border-b px-4 py-3 sm:px-6',
@@ -36,10 +35,5 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({ title, description, em
                 ) : null}
             </div>
         </div>
-        {email ? (
-            <p className="hidden shrink-0 truncate text-sm text-[var(--admin-text-muted)] sm:block" title={email}>
-                {email}
-            </p>
-        ) : null}
     </header>
 );

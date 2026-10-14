@@ -8,6 +8,8 @@ interface AuthContextValue {
     loading: boolean;
     signIn: (email: string, password: string) => Promise<{ error: string | null }>;
     signOut: () => Promise<void>;
+    /** Cambia el email de acceso. Sigue usando Auth (deuda: se sustituirá por sesión propia). */
+    updateAdminEmail: (nextEmail: string, currentPassword: string) => Promise<{ error: string | null; needsConfirmation: boolean }>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -42,9 +44,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.auth.signOut();
     }, []);
 
+    const updateAdminEmail = useCallback(
+        async (nextEmail: string, currentPassword: string) => {
+            const currentEmail = user?.email;
+            if (!currentEmail) {
+                return { error: 'No hay sesión de admin.', needsConfirmation: false };
+            }
+
+            const normalized = nextEmail.trim().toLowerCase();
+            if (normalized === currentEmail.toLowerCase()) {
+                return { error: null, needsConfirmation: false };
+            }
+
+            // Reautenticamos para que el cambio de email no quede a medias.
+            const { error: reauthError } = await supabase.auth.signInWithPassword({
+                email: currentEmail,
+                password: currentPassword,
+            });
+            if (reauthError) {
+                return { error: 'La contraseña actual no es correcta.', needsConfirmation: false };
+            }
+
+            const { data, error } = await supabase.auth.updateUser({ email: normalized });
+            if (error) {
+                return { error: error.message, needsConfirmation: false };
+            }
+
+            const confirmed = data.user?.email?.toLowerCase() === normalized;
+            return { error: null, needsConfirmation: !confirmed };
+        },
+        [user?.email],
+    );
+
     const value = useMemo(
-        () => ({ user, session, loading, signIn, signOut }),
-        [user, session, loading, signIn, signOut],
+        () => ({ user, session, loading, signIn, signOut, updateAdminEmail }),
+        [user, session, loading, signIn, signOut, updateAdminEmail],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

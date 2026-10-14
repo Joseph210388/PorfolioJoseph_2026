@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useSiteSettings } from '../hooks/useSiteSettings';
+import { initialsFromDisplayName } from '../utils/siteSettings';
 import { getAdminPageMeta } from './adminPageMeta';
 import { AdminSidebar } from './components/AdminSidebar';
 import { AdminTopBar } from './components/AdminTopBar';
 import { cn } from '@/lib/utils';
 
 const AdminLayout: React.FC = () => {
-    const { user, signOut } = useAuth();
+    const { signOut } = useAuth();
+    const { getDisplayName } = useSiteSettings();
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const [mobileOpen, setMobileOpen] = useState(false);
     const { title, description } = getAdminPageMeta(pathname);
+    const initials = initialsFromDisplayName(getDisplayName());
 
     const handleSignOut = async () => {
         await signOut();
@@ -35,14 +39,17 @@ const AdminLayout: React.FC = () => {
                     mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
                 )}
             >
-                <AdminSidebar onSignOut={handleSignOut} onClose={() => setMobileOpen(false)} />
+                <AdminSidebar
+                    onSignOut={handleSignOut}
+                    onClose={() => setMobileOpen(false)}
+                    initials={initials}
+                />
             </div>
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--admin-main)]">
                 <AdminTopBar
                     title={title}
                     description={description}
-                    email={user?.email}
                     onMenuClick={() => setMobileOpen(true)}
                 />
                 {/* El scroll de listados vive dentro de cada página/tabla, no en toda la app */}

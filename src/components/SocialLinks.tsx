@@ -1,31 +1,52 @@
-import React from 'react';
-import { GithubIcon, LinkedinIcon, MailIcon } from './icons';
+import React, { useMemo } from 'react';
+import SocialNetworkIcon from './SocialNetworkIcon';
+import { useSiteSettings } from '../hooks/useSiteSettings';
+import { isExternalSocialHref } from '../utils/socialNetworks';
 
 const SocialLinks: React.FC = () => {
-    const socialMedia = [
-        { icon: <GithubIcon />, href: 'https://github.com/Joseph210388', label: 'GitHub' },
-        { icon: <LinkedinIcon />, href: 'https://es.linkedin.com/in/joseph-valderrama', label: 'LinkedIn' },
-        { icon: <MailIcon />, href: 'mailto:josephvalderrama2103@gmail.com', label: 'Email' },
-    ];
+    const { getContactEmail, getSocialLinks } = useSiteSettings();
+    const contactEmail = getContactEmail();
+    const socialLinks = getSocialLinks();
+
+    const items = useMemo(() => {
+        const list = socialLinks.map((network) => ({
+            id: network.id,
+            href: network.href,
+            label: network.label,
+            kind: network.kind,
+            external: isExternalSocialHref(network.href),
+        }));
+        const hasMail = list.some((item) => item.kind === 'email' || item.href.startsWith('mailto:'));
+        if (!hasMail && contactEmail) {
+            list.push({
+                id: 'contact-mail',
+                href: `mailto:${contactEmail}`,
+                label: 'Email',
+                kind: 'email' as const,
+                external: false,
+            });
+        }
+        return list;
+    }, [socialLinks, contactEmail]);
 
     return (
-        <div className="hidden md:flex flex-col items-center fixed bottom-0 left-12 w-10 z-50">
+        <div className="fixed bottom-0 left-4 z-50 hidden w-10 flex-col items-center md:left-12 md:flex">
             <ul className="flex flex-col items-center space-y-4">
-                {socialMedia.map((social, index) => (
-                    <li key={index}>
-                        <a 
-                            href={social.href} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
+                {items.map((social) => (
+                    <li key={social.id}>
+                        <a
+                            href={social.href}
+                            target={social.external ? '_blank' : undefined}
+                            rel={social.external ? 'noopener noreferrer' : undefined}
                             aria-label={social.label}
-                            className="block p-2 text-text-muted hover:text-accent transform hover:-translate-y-1 transition-all duration-300"
+                            className="block p-2 text-text-muted transition-all duration-300 hover:-translate-y-1 hover:text-accent"
                         >
-                            {social.icon}
+                            <SocialNetworkIcon kind={social.kind} />
                         </a>
                     </li>
                 ))}
             </ul>
-            <div className="w-px h-24 bg-text-muted mt-4"></div>
+            <div className="mt-4 h-24 w-px bg-text-muted" />
         </div>
     );
 };

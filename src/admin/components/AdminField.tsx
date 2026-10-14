@@ -42,3 +42,5 @@ export const adminInputClass = cn(
     'placeholder:text-[#6c757d]/80 transition-colors',
     'focus:border-[#ec4869] focus:outline-none focus:ring-2 focus:ring-[#ec4869]/25',
 );
+
+export const adminTextareaClass = cn(adminInputClass, 'min-h-[5.5rem] resize-y leading-relaxed');

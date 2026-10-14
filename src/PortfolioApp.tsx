@@ -22,7 +22,6 @@ import { ProjectsContent } from './sections/ProjectsSection';
 import { ExperienceTabs } from './sections/ExperienceSection';
 import { ContactContent } from './sections/ContactSection';
 import GridBackground from './components/GridBackground';
-import { SiteSettingsProvider } from './hooks/useSiteSettings';
 
 const PortfolioApp: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
@@ -130,7 +129,6 @@ const PortfolioApp: React.FC = () => {
     }, []);
 
     return (
-        <SiteSettingsProvider>
         <>
             <LoadingScreen isLoading={isLoading} />
             <div className="fixed inset-0 overflow-hidden pointer-events-none z-0" aria-hidden>
@@ -175,7 +173,6 @@ const PortfolioApp: React.FC = () => {
                 <ThemeSwitcher theme={theme} toggleTheme={toggleTheme} />
             </div>
         </>
-        </SiteSettingsProvider>
     );
 };
 

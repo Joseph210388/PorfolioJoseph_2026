@@ -1,9 +1,17 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '../i18n/translations';
+import type { SocialNetwork } from '../utils/socialNetworks';
 import {
     cvUrlWithCacheBust,
     fetchSiteSettings,
+    resolveAvailability,
+    resolveContactEmail,
     resolveCvUrl,
+    resolveDisplayName,
+    resolveIsAvailable,
+    resolveLocation,
+    resolveProfileImageUrl,
+    resolveSocialLinks,
     type SiteSettings,
 } from '../utils/siteSettings';
 
@@ -11,6 +19,13 @@ interface SiteSettingsContextValue {
     settings: SiteSettings | null;
     loading: boolean;
     getCvUrl: (locale: Locale) => string;
+    getDisplayName: () => string;
+    getContactEmail: () => string;
+    getLocation: (locale: Locale) => string;
+    getAvailability: (locale: Locale) => string;
+    isAvailable: boolean;
+    getProfileImageUrl: () => string;
+    getSocialLinks: () => SocialNetwork[];
     refresh: () => Promise<void>;
 }
 
@@ -43,14 +58,44 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         [settings],
     );
 
+    const getDisplayName = useCallback(() => resolveDisplayName(settings), [settings]);
+    const getContactEmail = useCallback(() => resolveContactEmail(settings), [settings]);
+    const getLocation = useCallback((locale: Locale) => resolveLocation(locale, settings), [settings]);
+    const getAvailability = useCallback((locale: Locale) => resolveAvailability(locale, settings), [settings]);
+    const isAvailable = resolveIsAvailable(settings);
+    const getProfileImageUrl = useCallback(() => {
+        const base = resolveProfileImageUrl(settings);
+        return cvUrlWithCacheBust(base, settings?.updated_at);
+    }, [settings]);
+    const getSocialLinks = useCallback(() => resolveSocialLinks(settings), [settings]);
+
     const value = useMemo(
         () => ({
             settings,
             loading,
             getCvUrl,
+            getDisplayName,
+            getContactEmail,
+            getLocation,
+            getAvailability,
+            isAvailable,
+            getProfileImageUrl,
+            getSocialLinks,
             refresh,
         }),
-        [settings, loading, getCvUrl, refresh],
+        [
+            settings,
+            loading,
+            getCvUrl,
+            getDisplayName,
+            getContactEmail,
+            getLocation,
+            getAvailability,
+            isAvailable,
+            getProfileImageUrl,
+            getSocialLinks,
+            refresh,
+        ],
     );
 
     return <SiteSettingsContext.Provider value={value}>{children}</SiteSettingsContext.Provider>;

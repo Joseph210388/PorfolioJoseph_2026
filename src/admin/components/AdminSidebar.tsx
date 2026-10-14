@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Briefcase, Code2, FolderKanban, LayoutDashboard, LogOut, X } from 'lucide-react';
+import { Briefcase, Code2, FolderKanban, LayoutDashboard, LogOut, Settings, X } from 'lucide-react';
 import { ADMIN_BRAND } from '../adminPageMeta';
 import { cn } from '@/lib/utils';
 
@@ -11,13 +11,29 @@ const navItems = [
     { to: '/admin/technologies', label: 'Tecnologías', icon: Code2 },
 ] as const;
 
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+        'relative inline-flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
+        isActive
+            ? 'bg-[var(--admin-sidebar-active)] text-white'
+            : 'text-[var(--admin-sidebar-muted)] hover:bg-[var(--admin-sidebar-hover)] hover:text-white',
+        isActive &&
+            'before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r before:bg-[var(--admin-accent)]',
+    );
+
 interface AdminSidebarProps {
     onSignOut: () => void;
     onClose?: () => void;
+    initials?: string;
     className?: string;
 }
 
-export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onSignOut, onClose, className }) => (
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({
+    onSignOut,
+    onClose,
+    initials = 'JV',
+    className,
+}) => (
     <aside
         className={cn(
             'flex h-dvh min-h-0 w-64 shrink-0 flex-col bg-[var(--admin-sidebar)] text-[var(--admin-sidebar-text)]',
@@ -47,7 +63,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onSignOut, onClose, 
                 aria-current="page"
             >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold">
-                    JV
+                    {initials}
                 </span>
                 {ADMIN_BRAND}
             </div>
@@ -55,21 +71,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onSignOut, onClose, 
 
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
             {navItems.map(({ to, label, icon: Icon }) => (
-                <NavLink
-                    key={to}
-                    to={to}
-                    onClick={onClose}
-                    className={({ isActive }) =>
-                        cn(
-                            'relative inline-flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
-                            isActive
-                                ? 'bg-[var(--admin-sidebar-active)] text-white'
-                                : 'text-[var(--admin-sidebar-muted)] hover:bg-[var(--admin-sidebar-hover)] hover:text-white',
-                            isActive &&
-                                'before:absolute before:left-0 before:top-1/2 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r before:bg-[var(--admin-accent)]',
-                        )
-                    }
-                >
+                <NavLink key={to} to={to} onClick={onClose} className={navLinkClass}>
                     <Icon className="h-4 w-4 shrink-0" />
                     {label}
                 </NavLink>
@@ -77,6 +79,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ onSignOut, onClose, 
         </nav>
 
         <div className="mt-auto shrink-0 border-t border-white/10 p-3">
+            <NavLink to="/admin/settings" onClick={onClose} className={navLinkClass}>
+                <Settings className="h-4 w-4 shrink-0" />
+                Configuración
+            </NavLink>
             <button
                 type="button"
                 onClick={onSignOut}

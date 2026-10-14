@@ -17,6 +17,10 @@ const pageMeta: Record<string, { title: string; description: string }> = {
         title: 'Tecnologías',
         description: 'Catálogo usado en proyectos y filtros.',
     },
+    '/admin/settings': {
+        title: 'Configuración',
+        description: 'Perfil, correo público, disponibilidad, ubicación y redes.',
+    },
 };
 
 export function getAdminPageMeta(pathname: string) {
