@@ -5,6 +5,7 @@ import AdminModal from '../components/AdminModal';
 import { AdminModalFooter } from '../components/AdminModalFooter';
 import { AdminToggle } from '../components/AdminToggle';
 import SocialNetworkIcon from '../../components/SocialNetworkIcon';
+import { showAdminToast } from '../components/AdminToast';
 import { useAuth } from '../../hooks/useAuth';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
 import {
@@ -38,7 +39,7 @@ const emptyToNull = (value: string): string | null => {
 const SettingsAdminPage: React.FC = () => {
     const { settings, loading, refresh, getDisplayName, getContactEmail, getProfileImageUrl, getSocialLinks } =
         useSiteSettings();
-    const { user, updateAdminEmail } = useAuth();
+    const { user, pendingEmail, refreshUser, updateAdminEmail } = useAuth();
     const photoInputRef = useRef<HTMLInputElement>(null);
 
     const [modal, setModal] = useState<ModalName>(null);
@@ -47,7 +48,7 @@ const SettingsAdminPage: React.FC = () => {
     const [banner, setBanner] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
 
     const [displayName, setDisplayName] = useState('');
-    const [adminEmail, setAdminEmail] = useState('');
+    const [newAdminEmail, setNewAdminEmail] = useState('');
     const [adminPassword, setAdminPassword] = useState('');
     const [contactEmail, setContactEmail] = useState('');
     const [locationEs, setLocationEs] = useState('');
@@ -65,7 +66,7 @@ const SettingsAdminPage: React.FC = () => {
 
     const hydrateFromSettings = () => {
         setDisplayName(settings?.display_name?.trim() || PROFILE_FALLBACK.displayName);
-        setAdminEmail(user?.email ?? '');
+        setNewAdminEmail(pendingEmail ?? '');
         setAdminPassword('');
         setContactEmail(settings?.contact_email?.trim() || PROFILE_FALLBACK.contactEmail);
         setLocationEs(settings?.location_es?.trim() || PROFILE_FALLBACK.locationEs);
@@ -75,6 +76,10 @@ const SettingsAdminPage: React.FC = () => {
         setAvailabilityEn(settings?.availability_en?.trim() || PROFILE_FALLBACK.availabilityEn);
         setFieldError(null);
     };
+
+    useEffect(() => {
+        void refreshUser();
+    }, [refreshUser]);
 
     useEffect(() => {
         if (modal) hydrateFromSettings();
@@ -123,12 +128,13 @@ const SettingsAdminPage: React.FC = () => {
             setFieldError('El nombre es obligatorio.');
             return;
         }
-        const nextAdmin = adminEmail.trim().toLowerCase();
-        if (!EMAIL_PATTERN.test(nextAdmin)) {
-            setFieldError('El correo de acceso no es válido.');
+        const currentAdmin = (user?.email ?? '').trim().toLowerCase();
+        const nextAdmin = newAdminEmail.trim().toLowerCase();
+        const emailChanged = nextAdmin !== '' && nextAdmin !== currentAdmin;
+        if (nextAdmin && !EMAIL_PATTERN.test(nextAdmin)) {
+            setFieldError('El correo nuevo no es válido.');
             return;
         }
-        const emailChanged = nextAdmin !== (user?.email ?? '').toLowerCase();
         if (emailChanged && !adminPassword) {
             setFieldError('Escribe la contraseña actual para cambiar el correo de acceso.');
             return;
@@ -144,17 +150,20 @@ const SettingsAdminPage: React.FC = () => {
                     setFieldError(result.error);
                     return;
                 }
-                await refresh();
+                showAdminToast(
+                    `Hay que aceptar el cambio de correo en ${nextAdmin}. El acceso sigue siendo ${currentAdmin} hasta que confirmes el enlace.`,
+                );
+                closeModal();
                 setBanner({
                     type: 'ok',
-                    text: result.needsConfirmation
-                        ? 'Nombre guardado. Revisa el buzón nuevo y confirma el cambio de acceso (Supabase puede pedirlo).'
-                        : 'Nombre y correo de acceso actualizados.',
+                    text: `Cambio pedido. Auth no cambia el usuario hasta el enlace en ${nextAdmin}. Mientras tanto entra con ${currentAdmin}.`,
                 });
-            } else {
-                await refresh();
-                setBanner({ type: 'ok', text: 'Perfil actualizado.' });
+                setNewAdminEmail(nextAdmin);
+                setAdminPassword('');
+                return;
             }
+            await refresh();
+            setBanner({ type: 'ok', text: 'Perfil actualizado.' });
             closeModal();
         } catch (err) {
             setBanner({ type: 'error', text: err instanceof Error ? err.message : 'No se pudo guardar el perfil' });
@@ -298,6 +307,11 @@ const SettingsAdminPage: React.FC = () => {
                     <div className="min-w-0">
                         <p className="truncate font-semibold">{displayNameValue}</p>
                         <p className="truncate text-sm text-[var(--admin-text-muted)]">{user?.email ?? '—'}</p>
+                        {pendingEmail ? (
+                            <p className="mt-1 text-sm text-[var(--admin-accent)]">
+                                Cambio a {pendingEmail} pendiente: confirma el enlace en ese buzón.
+                            </p>
+                        ) : null}
                     </div>
                 </div>
             </section>
@@ -398,7 +412,7 @@ const SettingsAdminPage: React.FC = () => {
                 open={modal === 'profile'}
                 onClose={closeModal}
                 title="Editar perfil"
-                className="sm:max-w-lg"
+                className="sm:max-w-2xl"
                 footer={<AdminModalFooter formId="settings-profile-form" onCancel={closeModal} saving={saving} />}
             >
                 <form id="settings-profile-form" className="space-y-4" onSubmit={handleSaveProfile} noValidate>
@@ -440,25 +454,41 @@ const SettingsAdminPage: React.FC = () => {
                             maxLength={80}
                         />
                     </AdminField>
-                    <AdminField
-                        label="Correo de acceso al admin"
-                        htmlFor="settings-admin-email"
-                        required
-                        hint="No es el correo de las tarjetas de Contacto. Si Auth pide confirmación, llegará al buzón nuevo."
-                    >
-                        <input
-                            id="settings-admin-email"
-                            type="email"
-                            className={adminInputClass}
-                            value={adminEmail}
-                            onChange={(e) => setAdminEmail(e.target.value)}
-                            autoComplete="username"
-                        />
-                    </AdminField>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <AdminField label="Correo de acceso actual" htmlFor="settings-admin-email-current">
+                            <input
+                                id="settings-admin-email-current"
+                                type="email"
+                                readOnly
+                                tabIndex={-1}
+                                value={user?.email ?? ''}
+                                className={cn(
+                                    adminInputClass,
+                                    'cursor-not-allowed bg-[#f1f3f5] text-[#6c757d] focus:border-[#dee2e6] focus:ring-0',
+                                )}
+                                autoComplete="off"
+                            />
+                        </AdminField>
+                        <AdminField
+                            label="Correo nuevo"
+                            htmlFor="settings-admin-email-new"
+                            hint="Déjalo vacío si no quieres cambiar el acceso."
+                        >
+                            <input
+                                id="settings-admin-email-new"
+                                type="email"
+                                className={adminInputClass}
+                                value={newAdminEmail}
+                                onChange={(e) => setNewAdminEmail(e.target.value)}
+                                placeholder="nuevo@correo.com"
+                                autoComplete="username"
+                            />
+                        </AdminField>
+                    </div>
                     <AdminField
                         label="Contraseña actual"
                         htmlFor="settings-admin-password"
-                        hint="Solo hace falta si cambias el correo de acceso."
+                        hint="Solo hace falta si escribes un correo nuevo."
                     >
                         <input
                             id="settings-admin-password"
@@ -469,6 +499,12 @@ const SettingsAdminPage: React.FC = () => {
                             autoComplete="current-password"
                         />
                     </AdminField>
+                    {pendingEmail && modal === 'profile' ? (
+                        <p className="text-sm text-[var(--admin-accent)]">
+                            Ya hay un cambio pedido a {pendingEmail}. Guarda otra vez con la contraseña para
+                            reenviar el correo, o abre el enlace si ya te llegó.
+                        </p>
+                    ) : null}
                     {fieldError && modal === 'profile' ? <p className="text-sm text-red-500">{fieldError}</p> : null}
                 </form>
             </AdminModal>

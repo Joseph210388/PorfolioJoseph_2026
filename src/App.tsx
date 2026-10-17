@@ -4,6 +4,7 @@ import { AuthProvider } from './hooks/useAuth';
 import { SiteSettingsProvider } from './hooks/useSiteSettings';
 import PortfolioApp from './PortfolioApp';
 import AdminApp from './admin/AdminApp';
+import AuthConfirmPage from './admin/AuthConfirmPage';
 import { isSupabaseConfigured } from './utils/supabase';
 
 const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined;
@@ -37,6 +38,7 @@ const App: React.FC = () => {
             <SiteSettingsProvider>
                 <BrowserRouter basename={routerBasename}>
                     <Routes>
+                        <Route path="/auth/confirm" element={<AuthConfirmPage />} />
                         <Route path="/admin/*" element={<AdminApp />} />
                         <Route path="/*" element={<PortfolioApp />} />
                     </Routes>

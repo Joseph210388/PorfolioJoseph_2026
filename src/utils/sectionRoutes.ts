@@ -61,9 +61,16 @@ export function pathToSectionId(fullPathname: string): string {
     return internalPathToSectionId(internal);
 }
 
+/** Enlaces de Auth (cambio de correo). No deben caer al inicio del portfolio. */
+export function isAuthCallbackPath(pathname: string): boolean {
+    const internal = normalizeAppPath(pathnameWithoutBase(pathname));
+    return internal === '/auth/confirm' || internal.startsWith('/auth/');
+}
+
 /** Si la ruta no existe, conviene llevar al usuario a inicio sin recargar */
 export function normalizeUnknownPathToHome(pathname: string): string {
     const internal = normalizeAppPath(pathnameWithoutBase(pathname));
+    if (isAuthCallbackPath(pathname)) return internal;
     if (!isKnownAppPath(internal)) return '/';
     return internal;
 }

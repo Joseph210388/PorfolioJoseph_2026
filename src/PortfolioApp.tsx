@@ -66,6 +66,14 @@ const PortfolioApp: React.FC = () => {
 
     useEffect(() => {
         if (isLoading) return;
+        // Un token de Auth no es una sección: no reescribir la URL ni ir al hero.
+        if (
+            window.location.pathname.includes('/auth/') ||
+            window.location.search.includes('token_hash=') ||
+            window.location.hash.includes('access_token')
+        ) {
+            return;
+        }
         const hash = window.location.hash.replace(/^#/, '');
         if (hash && isKnownSectionHash(hash)) {
             const path = sectionIdToPath(hash);
@@ -89,6 +97,13 @@ const PortfolioApp: React.FC = () => {
     useEffect(() => {
         if (isLoading) return;
         const onPopState = () => {
+            if (
+                window.location.pathname.includes('/auth/') ||
+                window.location.search.includes('token_hash=') ||
+                window.location.hash.includes('access_token')
+            ) {
+                return;
+            }
             const raw = normalizeAppPath(pathnameWithoutBase(window.location.pathname));
             const internal = normalizeUnknownPathToHome(window.location.pathname);
             if (internal !== raw) {

@@ -1,5 +1,5 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 // Cáscara opaca + bordes redondeados; el scroll va en un hijo para que el rebote (overscroll) no deje ver el fondo de la página
@@ -32,33 +32,55 @@ export const FilterDropdownMenu: React.FC<FilterDropdownMenuProps> = ({
     onOpenChange,
     trigger,
     children,
-}) => (
-    // modal=true (default Radix): con modal=false el capa dismissable a veces interpreta el mismo clic
-    // como “interacción fuera” y el menú abre y cierra al instante según scroll/stacking.
-    <DropdownMenu.Root open={open} onOpenChange={onOpenChange} modal>
-        <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-            <DropdownMenu.Content
-                side="bottom"
-                align="start"
-                sideOffset={8}
-                collisionPadding={12}
-                className={contentShellClassName}
-                onCloseAutoFocus={(e) => e.preventDefault()}
-                style={{
-                    backgroundColor: 'var(--color-dropdown-surface)',
-                    color: 'var(--color-text-primary)',
-                }}
-            >
-                <div
-                    className={contentScrollClassName}
-                    style={{ backgroundColor: 'var(--color-dropdown-surface)' }}
+}) => {
+    const openedAtRef = useRef(0);
+
+    const handleOpenChange = (next: boolean) => {
+        if (next) {
+            openedAtRef.current = Date.now();
+            onOpenChange(true);
+            return;
+        }
+        // Con modal=false Radix a veces dispara “fuera” en el mismo gesto que abre.
+        if (Date.now() - openedAtRef.current < 180) return;
+        onOpenChange(false);
+    };
+
+    // Al bajar la página, cerramos el menú para que no quede flotando lejos del botón.
+    useEffect(() => {
+        if (!open) return;
+        const closeOnPageScroll = () => onOpenChange(false);
+        window.addEventListener('scroll', closeOnPageScroll, { passive: true });
+        return () => window.removeEventListener('scroll', closeOnPageScroll);
+    }, [open, onOpenChange]);
+
+    return (
+        // modal=false: no bloquea el scroll ni pone overlay a pantalla completa.
+        <DropdownMenu.Root open={open} onOpenChange={handleOpenChange} modal={false}>
+            <DropdownMenu.Trigger asChild>{trigger}</DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                    side="bottom"
+                    align="start"
+                    sideOffset={8}
+                    collisionPadding={12}
+                    className={contentShellClassName}
+                    onCloseAutoFocus={(e) => e.preventDefault()}
+                    style={{
+                        backgroundColor: 'var(--color-dropdown-surface)',
+                        color: 'var(--color-text-primary)',
+                    }}
                 >
-                    {children}
-                </div>
-            </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-    </DropdownMenu.Root>
-);
+                    <div
+                        className={contentScrollClassName}
+                        style={{ backgroundColor: 'var(--color-dropdown-surface)' }}
+                    >
+                        {children}
+                    </div>
+                </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+    );
+};
 
 export const FilterMenuItem = DropdownMenu.Item;
