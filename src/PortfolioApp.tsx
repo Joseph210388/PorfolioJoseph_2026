@@ -70,7 +70,8 @@ const PortfolioApp: React.FC = () => {
         if (
             window.location.pathname.includes('/auth/') ||
             window.location.search.includes('token_hash=') ||
-            window.location.hash.includes('access_token')
+            window.location.hash.includes('access_token') ||
+            window.location.hash.includes('message=')
         ) {
             return;
         }
@@ -100,7 +101,8 @@ const PortfolioApp: React.FC = () => {
             if (
                 window.location.pathname.includes('/auth/') ||
                 window.location.search.includes('token_hash=') ||
-                window.location.hash.includes('access_token')
+                window.location.hash.includes('access_token') ||
+            window.location.hash.includes('message=')
             ) {
                 return;
             }

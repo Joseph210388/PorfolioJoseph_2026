@@ -28,13 +28,27 @@ function humanizeAuthError(message: string): string {
     return message;
 }
 
+function hashParams(): URLSearchParams {
+    return new URLSearchParams(window.location.hash.replace(/^#/, ''));
+}
+
+function decodeHashText(value: string): string {
+    return decodeURIComponent(value.replace(/\+/g, ' '));
+}
+
+function isNeedOtherEmailMessage(message: string): boolean {
+    const lower = message.toLowerCase();
+    return lower.includes('other email') || lower.includes('confirm link sent');
+}
+
 /**
  * Completa el enlace de Auth (cambio de correo, etc.).
- * Sin esta ruta, /auth/confirm cae en el portfolio y se pierde el token.
+ * Auth a veces redirige a /#message=... (doble confirmación iCloud + Gmail).
  */
 const AuthConfirmPage: React.FC = () => {
     const navigate = useNavigate();
     const [error, setError] = useState<string | null>(null);
+    const [needOtherEmail, setNeedOtherEmail] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -44,12 +58,18 @@ const AuthConfirmPage: React.FC = () => {
             const tokenHash = url.searchParams.get('token_hash');
             const type = parseLinkType(url.searchParams.get('type'));
             const code = url.searchParams.get('code');
-            const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+            const hash = hashParams();
             const hashError = hash.get('error_description') || hash.get('error');
+            const hashMessage = hash.get('message');
+
+            if (hashMessage && isNeedOtherEmailMessage(decodeHashText(hashMessage))) {
+                if (!cancelled) setNeedOtherEmail(true);
+                return;
+            }
 
             if (hashError) {
                 if (!cancelled) {
-                    setError(humanizeAuthError(hashError.replace(/\+/g, ' ')));
+                    setError(humanizeAuthError(decodeHashText(hashError)));
                 }
                 return;
             }
@@ -98,7 +118,24 @@ const AuthConfirmPage: React.FC = () => {
     return (
         <div className="admin-shell flex min-h-dvh items-center justify-center bg-[var(--admin-sidebar)] px-4 py-12">
             <div className="w-full max-w-md rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-main)] p-6 text-center shadow-lg sm:p-8">
-                {error ? (
+                {needOtherEmail ? (
+                    <>
+                        <h1 className="text-xl font-semibold tracking-tight text-[var(--admin-text)]">
+                            Primer enlace aceptado
+                        </h1>
+                        <p className="mt-3 text-sm leading-relaxed text-[var(--admin-text-muted)]">
+                            Auth pide confirmar los dos buzones (iCloud y Gmail). Abre el otro correo y pulsa el
+                            segundo enlace. Hasta entonces Users no cambia.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/admin/login', { replace: true })}
+                            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-[#ec4869] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#d93d5c]"
+                        >
+                            Ir al login
+                        </button>
+                    </>
+                ) : error ? (
                     <>
                         <h1 className="text-xl font-semibold tracking-tight text-[var(--admin-text)]">
                             No se pudo confirmar el correo
