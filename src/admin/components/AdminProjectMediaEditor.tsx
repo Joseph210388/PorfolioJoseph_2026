@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Star, Trash2 } from 'lucide-react';
 import { adminInputClass } from './AdminField';
 import type { ProjectMediaFormItem } from '../adminApi';
@@ -9,8 +9,6 @@ interface AdminProjectMediaEditorProps {
     onChange: (items: ProjectMediaFormItem[]) => void;
 }
 
-const CARD_WIDTH = 'min-w-[13.5rem] w-[13.5rem] sm:min-w-[15rem] sm:w-[15rem]';
-
 const newMediaItem = (isThumbnail: boolean): ProjectMediaFormItem => ({
     clientId: `new-${crypto.randomUUID()}`,
     url: '',
@@ -18,8 +16,21 @@ const newMediaItem = (isThumbnail: boolean): ProjectMediaFormItem => ({
 });
 
 export const AdminProjectMediaEditor: React.FC<AdminProjectMediaEditorProps> = ({ items, onChange }) => {
+    const [selectedIndex, setSelectedIndex] = useState(0);
+
+    useEffect(() => {
+        setSelectedIndex((current) => {
+            if (items.length === 0) return 0;
+            return Math.min(current, items.length - 1);
+        });
+    }, [items.length]);
+
+    const selected = items[selectedIndex] ?? null;
+
     const addImage = () => {
-        onChange([...items, newMediaItem(items.length === 0)]);
+        const next = [...items, newMediaItem(items.length === 0)];
+        onChange(next);
+        setSelectedIndex(next.length - 1);
     };
 
     const updateUrl = (clientId: string, url: string) => {
@@ -38,128 +49,143 @@ export const AdminProjectMediaEditor: React.FC<AdminProjectMediaEditorProps> = (
         onChange(next);
     };
 
-    const moveItem = (index: number, direction: -1 | 1) => {
-        const target = index + direction;
-        if (target < 0 || target >= items.length) return;
-        const next = [...items];
-        const [moved] = next.splice(index, 1);
-        next.splice(target, 0, moved);
-        onChange(next);
+    const showPrev = () => {
+        if (items.length < 2) return;
+        setSelectedIndex((index) => (index <= 0 ? items.length - 1 : index - 1));
     };
 
+    const showNext = () => {
+        if (items.length < 2) return;
+        setSelectedIndex((index) => (index >= items.length - 1 ? 0 : index + 1));
+    };
+
+    const thumbs = (
+        <>
+            {items.map((item, index) => (
+                <button
+                    key={item.clientId}
+                    type="button"
+                    onClick={() => setSelectedIndex(index)}
+                    aria-label={`Imagen ${index + 1}`}
+                    aria-current={index === selectedIndex ? true : undefined}
+                    className={cn(
+                        'h-14 w-14 shrink-0 overflow-hidden rounded-xl border bg-white sm:h-16 sm:w-16',
+                        index === selectedIndex
+                            ? 'border-[#ec4869] ring-2 ring-[#ec4869]/30'
+                            : 'border-[#dee2e6] hover:border-[#ec4869]/50',
+                    )}
+                >
+                    {item.url.trim() ? (
+                        <img src={item.url.trim()} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                        <span className="flex h-full items-center justify-center text-[10px] text-[#6c757d]">
+                            #{index + 1}
+                        </span>
+                    )}
+                </button>
+            ))}
+            {items.length > 0 ? (
+                <button
+                    type="button"
+                    onClick={addImage}
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-[#dee2e6] text-[#495057] transition-colors hover:border-[#ec4869]/50 hover:text-[#ec4869] sm:h-16 sm:w-16"
+                    aria-label="Añadir imagen"
+                >
+                    <Plus className="h-5 w-5" />
+                </button>
+            ) : null}
+        </>
+    );
+
     return (
-        <div className="overflow-hidden rounded-xl border border-[#dee2e6] bg-slate-50/80">
-            <div
-                className="flex gap-3 overflow-x-auto overscroll-x-contain p-3 snap-x snap-mandatory scroll-smooth"
-                role="list"
-                aria-label="Imágenes del proyecto"
-            >
-                {items.map((item, index) => (
-                    <article
-                        key={item.clientId}
-                        role="listitem"
-                        className={cn(
-                            CARD_WIDTH,
-                            'flex shrink-0 snap-start flex-col rounded-xl border bg-white p-3 shadow-sm',
-                            item.is_thumbnail ? 'border-[#ec4869]/50 ring-2 ring-[#ec4869]/20' : 'border-[#dee2e6]',
-                        )}
-                    >
-                        <div className="mb-2 flex items-center justify-between gap-1">
-                            <span className="text-xs font-semibold text-[#495057]">#{index + 1}</span>
-                            {item.is_thumbnail ? (
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-[#ec4869]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#ec4869]">
+        <div className="flex h-full min-h-0 flex-col gap-3">
+            <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:items-stretch">
+                {items.length > 0 ? (
+                    <div className="order-2 flex min-h-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 lg:order-1 lg:w-[4.75rem] lg:shrink-0 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:pb-0">
+                        {thumbs}
+                    </div>
+                ) : null}
+
+                <div className="relative order-1 min-h-0 flex-1 overflow-hidden rounded-xl bg-[#f8f9fa] p-2 sm:p-3 lg:order-2">
+                    {selected?.url.trim() ? (
+                        <img
+                            src={selected.url.trim()}
+                            alt=""
+                            className="h-52 w-full rounded-lg object-cover object-top sm:h-64 md:h-80 lg:h-full lg:min-h-[22rem]"
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={addImage}
+                            className="flex h-52 w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#dee2e6] bg-white text-sm font-medium text-[#495057] transition-colors hover:border-[#ec4869]/50 hover:text-[#ec4869] sm:h-64 md:h-80 lg:h-full lg:min-h-[22rem]"
+                        >
+                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f8f9fa]">
+                                <Plus className="h-5 w-5" />
+                            </span>
+                            Añadir imagen
+                        </button>
+                    )}
+
+                    {items.length > 1 ? (
+                        <>
+                            <button
+                                type="button"
+                                onClick={showPrev}
+                                className="absolute left-3 top-1/2 z-[2] inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/70 sm:h-10 sm:w-10"
+                                aria-label="Imagen anterior"
+                            >
+                                <ChevronLeft className="h-5 w-5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={showNext}
+                                className="absolute right-3 top-1/2 z-[2] inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/70 sm:h-10 sm:w-10"
+                                aria-label="Imagen siguiente"
+                            >
+                                <ChevronRight className="h-5 w-5" />
+                            </button>
+                        </>
+                    ) : null}
+
+                    {selected ? (
+                        <div className="absolute bottom-3 left-3 right-3 z-[2] flex flex-wrap items-center justify-between gap-2">
+                            {selected.is_thumbnail ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
                                     <Star className="h-2.5 w-2.5 fill-current" aria-hidden />
                                     Miniatura
                                 </span>
                             ) : (
                                 <button
                                     type="button"
-                                    onClick={() => setThumbnail(item.clientId)}
-                                    className="text-[10px] font-medium text-[#ec4869] hover:underline"
+                                    onClick={() => setThumbnail(selected.clientId)}
+                                    className="rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-black/75"
                                 >
                                     Hacer miniatura
                                 </button>
                             )}
-                        </div>
-
-                        <div className="mb-2 h-24 w-full overflow-hidden rounded-lg border border-[#dee2e6] bg-slate-100">
-                            {item.url.trim() ? (
-                                <img
-                                    src={item.url.trim()}
-                                    alt=""
-                                    className="h-full w-full object-cover"
-                                    onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                    }}
-                                />
-                            ) : (
-                                <div className="flex h-full items-center justify-center text-xs text-[#6c757d]">
-                                    Sin vista previa
-                                </div>
-                            )}
-                        </div>
-
-                        <input
-                            type="url"
-                            value={item.url}
-                            onChange={(e) => updateUrl(item.clientId, e.target.value)}
-                            placeholder="URL Cloudinary…"
-                            className={cn(adminInputClass, 'text-xs')}
-                            aria-label={`URL imagen ${index + 1}`}
-                        />
-
-                        <div className="mt-2 flex items-center justify-between gap-1 border-t border-[#dee2e6] pt-2">
-                            <div className="flex gap-0.5">
-                                <button
-                                    type="button"
-                                    onClick={() => moveItem(index, -1)}
-                                    disabled={index === 0}
-                                    aria-label="Mover a la izquierda"
-                                    className="rounded-lg p-1.5 text-[var(--admin-text-muted)] transition-colors hover:bg-slate-100 disabled:opacity-30"
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => moveItem(index, 1)}
-                                    disabled={index === items.length - 1}
-                                    aria-label="Mover a la derecha"
-                                    className="rounded-lg p-1.5 text-[var(--admin-text-muted)] transition-colors hover:bg-slate-100 disabled:opacity-30"
-                                >
-                                    <ChevronRight className="h-4 w-4" />
-                                </button>
-                            </div>
                             <button
                                 type="button"
-                                onClick={() => removeItem(item.clientId)}
+                                onClick={() => removeItem(selected.clientId)}
                                 aria-label="Eliminar imagen"
-                                className="rounded-lg p-1.5 text-[var(--admin-text-muted)] transition-colors hover:bg-red-50 hover:text-red-500"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-red-500"
                             >
                                 <Trash2 className="h-4 w-4" />
                             </button>
                         </div>
-                    </article>
-                ))}
-
-                <button
-                    type="button"
-                    onClick={addImage}
-                    className={cn(
-                        CARD_WIDTH,
-                        'flex shrink-0 snap-start flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#dee2e6] bg-white p-4 text-sm font-medium text-[#495057] transition-colors hover:border-[#ec4869]/50 hover:bg-[#ec4869]/5 hover:text-[#ec4869]',
-                    )}
-                >
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
-                        <Plus className="h-5 w-5" />
-                    </span>
-                    <span>Añadir imagen</span>
-                </button>
+                    ) : null}
+                </div>
             </div>
 
-            {items.length === 0 ? (
-                <p className="border-t border-[#dee2e6] px-3 py-2 text-center text-xs text-[var(--admin-text-muted)]">
-                    Desliza horizontalmente cuando haya varias. La miniatura es la de la tarjeta en el portfolio.
-                </p>
+            {selected ? (
+                <input
+                    type="text"
+                    inputMode="url"
+                    value={selected.url}
+                    onChange={(e) => updateUrl(selected.clientId, e.target.value)}
+                    placeholder="https://…"
+                    className={cn(adminInputClass, 'text-sm')}
+                    aria-label="URL de la imagen"
+                />
             ) : null}
         </div>
     );

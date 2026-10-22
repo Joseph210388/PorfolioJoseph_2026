@@ -1,24 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ChevronDown, GripVertical, Languages, Loader2, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { AdminField, adminInputClass } from '../components/AdminField';
+import { ChevronDown, GripVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { adminInputClass } from '../components/AdminField';
 import {
     deleteProject,
     fetchAdminProjectsPaginated,
     fetchCategories,
     fetchProjectsOrderIds,
     fetchTechnologyOptions,
+    formatAdminError,
     projectDescriptionToForm,
     saveProject,
     translationToForm,
     updateProjectsOrder,
+    type AdminCategoryOption,
     type AdminProjectListItem,
     type ProjectFormData,
 } from '../adminApi';
 import { DEFAULT_ADMIN_PAGE_SIZE, type AdminPageSize } from '../adminListTypes';
 import type { Project, Technology } from '../../utils/supabase';
 import AdminModal from '../components/AdminModal';
-import { AdminProjectMediaEditor } from '../components/AdminProjectMediaEditor';
+import { AdminProjectEditor } from '../components/AdminProjectEditor';
 import { AdminModalFooter } from '../components/AdminModalFooter';
+import { showAdminToast } from '../components/AdminToast';
 import { AdminPagination } from '../components/AdminPagination';
 import {
     AdminScrollableTable,
@@ -71,7 +74,7 @@ const ProjectsAdminPage: React.FC = () => {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState<AdminPageSize>(DEFAULT_ADMIN_PAGE_SIZE);
     const [technologies, setTechnologies] = useState<Technology[]>([]);
-    const [categories, setCategories] = useState<{ id: number; slug: string }[]>([]);
+    const [categories, setCategories] = useState<AdminCategoryOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [pageError, setPageError] = useState<string | null>(null);
@@ -161,11 +164,15 @@ const ProjectsAdminPage: React.FC = () => {
         setSaving(true);
         setFormError(null);
         try {
-            await saveProject(editingId, form);
+            const { warning } = await saveProject(editingId, form);
             closeForm();
+            if (warning) {
+                showAdminToast(warning);
+                setPageError(warning);
+            }
             await load();
         } catch (err) {
-            setFormError(err instanceof Error ? err.message : 'Error al guardar');
+            setFormError(formatAdminError(err, 'Error al guardar'));
         } finally {
             setSaving(false);
         }
@@ -200,19 +207,6 @@ const ProjectsAdminPage: React.FC = () => {
             await load();
         }
         setDragIndex(null);
-    };
-
-    const setLocaleField = (field: 'name' | 'description', locale: 'es' | 'en', value: string) => {
-        setForm((prev) => ({ ...prev, [field]: { ...prev[field], [locale]: value } }));
-    };
-
-    const toggleTech = (id: number) => {
-        setForm((prev) => ({
-            ...prev,
-            technology_ids: prev.technology_ids.includes(id)
-                ? prev.technology_ids.filter((t) => t !== id)
-                : [...prev.technology_ids, id],
-        }));
     };
 
     const translateAllToEnglish = async () => {
@@ -250,155 +244,25 @@ const ProjectsAdminPage: React.FC = () => {
                 open={showForm}
                 onClose={closeForm}
                 title={editingId ? 'Editar proyecto' : 'Nuevo proyecto'}
+                className="sm:max-h-[min(92dvh,56rem)] sm:max-w-[min(96vw,72rem)] lg:max-w-[min(96vw,88rem)]"
+                bodyClassName="flex min-h-0 flex-col overflow-hidden p-0 sm:p-0"
                 footer={<AdminModalFooter formId="admin-project-form" onCancel={closeForm} saving={saving} />}
             >
-                <form id="admin-project-form" onSubmit={handleSave} className="space-y-5">
-                    {formError ? (
-                        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
-                            {formError}
-                        </p>
-                    ) : null}
-                    <p className="text-xs text-[var(--admin-text-muted)]">
-                        Los campos marcados con <span className="font-semibold text-[#ec4869]">*</span> son obligatorios.
-                    </p>
-                    <AdminField
-                        label="Imágenes del proyecto"
-                        hint="Opcional. La miniatura sale en la tarjeta; el resto en el detalle. Añade filas hacia la derecha y desplázate si no caben."
-                    >
-                        <AdminProjectMediaEditor
-                            items={form.media}
-                            onChange={(media) => setForm((prev) => ({ ...prev, media }))}
-                        />
-                    </AdminField>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <AdminField label="Estado" htmlFor="proj-status" required>
-                            <select
-                                id="proj-status"
-                                required
-                                value={form.status}
-                                onChange={(e) => setForm({ ...form, status: e.target.value as ProjectFormData['status'] })}
-                                className={adminInputClass}
-                            >
-                                <option value="finished">Finalizado</option>
-                                <option value="in_progress">En progreso</option>
-                                <option value="paused">Pausado</option>
-                            </select>
-                        </AdminField>
-                        <AdminField label="Categoría" htmlFor="proj-cat" required>
-                            <select
-                                id="proj-cat"
-                                required
-                                value={form.category_id ?? ''}
-                                onChange={(e) => setForm({ ...form, category_id: e.target.value ? Number(e.target.value) : null })}
-                                className={adminInputClass}
-                            >
-                                <option value="" disabled>
-                                    Seleccionar categoría
-                                </option>
-                                {categories.map((c) => (
-                                    <option key={c.id} value={c.id}>{c.slug}</option>
-                                ))}
-                            </select>
-                        </AdminField>
-                    </div>
-                    <AdminField
-                        label="Destacado"
-                        htmlFor="proj-featured"
-                        hint="Opcional. Los proyectos destacados pueden usarse en secciones especiales del portfolio (p. ej. hero)."
-                    >
-                        <label
-                            htmlFor="proj-featured"
-                            className="inline-flex cursor-pointer items-center gap-3 rounded-xl border border-[#dee2e6] bg-white px-4 py-3 text-sm text-[#212529] transition-colors hover:border-[#ec4869]/30"
-                        >
-                            <input
-                                id="proj-featured"
-                                type="checkbox"
-                                checked={form.featured}
-                                onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-                                className="h-4 w-4 shrink-0 rounded border-[#dee2e6] text-[#ec4869] focus:ring-[#ec4869]"
-                            />
-                            <span>Marcar como proyecto destacado</span>
-                        </label>
-                    </AdminField>
-                    <div className="space-y-3 rounded-xl border border-[#dee2e6] bg-slate-50/60 p-4">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="text-xs text-[var(--admin-text-muted)]">
-                                Escribe en español y usa la traducción automática para el inglés (revisa el resultado antes de guardar).
-                            </p>
-                            <button
-                                type="button"
-                                onClick={translateAllToEnglish}
-                                disabled={translatingAll || (!form.name.es.trim() && !form.description.es.trim())}
-                                className={cn(
-                                    'inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-[#ec4869]/30 bg-white px-4 py-2 text-sm font-semibold text-[#ec4869] transition-colors',
-                                    'hover:bg-[#ec4869]/5 disabled:cursor-not-allowed disabled:opacity-50',
-                                )}
-                            >
-                                {translatingAll ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                                ) : (
-                                    <Languages className="h-4 w-4" aria-hidden />
-                                )}
-                                Traducir todo al inglés
-                            </button>
-                        </div>
-                        <div className="grid gap-4 lg:grid-cols-2">
-                            <AdminField label="Nombre (ES)" htmlFor="proj-name-es" required>
-                                <input id="proj-name-es" required value={form.name.es} onChange={(e) => setLocaleField('name', 'es', e.target.value)} className={adminInputClass} />
-                            </AdminField>
-                            <AdminField label="Name (EN)" htmlFor="proj-name-en" required>
-                                <input id="proj-name-en" required value={form.name.en} onChange={(e) => setLocaleField('name', 'en', e.target.value)} className={adminInputClass} />
-                            </AdminField>
-                            <AdminField label="Descripción (ES)" htmlFor="proj-desc-es" required>
-                                <textarea id="proj-desc-es" required rows={3} value={form.description.es} onChange={(e) => setLocaleField('description', 'es', e.target.value)} className={cn(adminInputClass, 'resize-y')} />
-                            </AdminField>
-                            <AdminField label="Description (EN)" htmlFor="proj-desc-en" required>
-                                <textarea id="proj-desc-en" required rows={3} value={form.description.en} onChange={(e) => setLocaleField('description', 'en', e.target.value)} className={cn(adminInputClass, 'resize-y')} />
-                            </AdminField>
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-                        <AdminField
-                            className="min-w-0 flex-1"
-                            label="Tecnologías"
-                            hint={`${form.technology_ids.length} seleccionada${form.technology_ids.length === 1 ? '' : 's'}`}
-                        >
-                            <div className="max-h-52 overflow-y-auto overscroll-contain rounded-xl border border-[#dee2e6] bg-white p-3 sm:max-h-60 lg:min-h-[11rem]">
-                                <div className="grid grid-cols-2 gap-2">
-                                    {technologies.map((tech) => {
-                                        const checked = form.technology_ids.includes(tech.id);
-                                        return (
-                                            <label
-                                                key={tech.id}
-                                                className={cn(
-                                                    'flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2 text-sm transition-colors',
-                                                    checked
-                                                        ? 'border-[#ec4869]/40 bg-[#ec4869]/5 text-[#212529]'
-                                                        : 'border-transparent text-[#495057] hover:bg-slate-50',
-                                                )}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={checked}
-                                                    onChange={() => toggleTech(tech.id)}
-                                                    className="h-4 w-4 shrink-0 rounded border-[#dee2e6] text-[#ec4869] focus:ring-[#ec4869]"
-                                                />
-                                                <span className="truncate">{tech.name}</span>
-                                            </label>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </AdminField>
-                        <div className="flex w-full shrink-0 flex-col gap-4 lg:w-64 xl:w-72">
-                            <AdminField label="GitHub URL" htmlFor="proj-gh" hint="Opcional">
-                                <input id="proj-gh" value={form.github_url} onChange={(e) => setForm({ ...form, github_url: e.target.value })} className={adminInputClass} />
-                            </AdminField>
-                            <AdminField label="Live URL" htmlFor="proj-live" hint="Opcional">
-                                <input id="proj-live" value={form.live_url} onChange={(e) => setForm({ ...form, live_url: e.target.value })} className={adminInputClass} />
-                            </AdminField>
-                        </div>
-                    </div>
+                <form
+                    id="admin-project-form"
+                    onSubmit={handleSave}
+                    className="flex min-h-0 flex-1 flex-col overflow-hidden"
+                >
+                    <AdminProjectEditor
+                        key={editingId ?? 'new'}
+                        form={form}
+                        onChange={setForm}
+                        technologies={technologies}
+                        categories={categories}
+                        formError={formError}
+                        translating={translatingAll}
+                        onTranslateToEnglish={translateAllToEnglish}
+                    />
                 </form>
             </AdminModal>
 

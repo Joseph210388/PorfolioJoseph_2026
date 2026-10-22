@@ -48,6 +48,29 @@ export type TechnologyFormData = {
     color: string;
 };
 
+/** Mensaje usable a partir de un error de PostgREST (a veces no es `instanceof Error`). */
+export function formatAdminError(err: unknown, fallback: string): string {
+    if (err && typeof err === 'object') {
+        const e = err as { message?: string; details?: string; hint?: string; code?: string };
+        const parts = [e.message, e.details, e.hint].filter(
+            (part): part is string => typeof part === 'string' && part.trim().length > 0,
+        );
+        if (parts.length > 0) {
+            return e.code ? `${parts.join(' — ')} (${e.code})` : parts.join(' — ');
+        }
+    }
+    if (err instanceof Error && err.message.trim()) return err.message;
+    return fallback;
+}
+
+function throwDbError(
+    error: { message?: string; details?: string; hint?: string; code?: string } | null,
+    fallback: string,
+) {
+    if (!error) return;
+    throw new Error(formatAdminError(error, fallback));
+}
+
 async function upsertTranslation<T extends { id?: number }>(
     table: string,
     match: Record<string, string | number>,
@@ -164,7 +187,15 @@ export async function fetchTechnologyOptions(): Promise<Technology[]> {
     return data ?? [];
 }
 
-export async function saveProject(id: number | null, form: ProjectFormData) {
+export async function saveProject(
+    id: number | null,
+    form: ProjectFormData,
+): Promise<{ id: number; warning: string | null }> {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+        throw new Error('La sesión ha caducado. Vuelve a iniciar sesión para guardar.');
+    }
+
     const projectPayload = {
         status: form.status,
         featured: form.featured,
@@ -178,39 +209,84 @@ export async function saveProject(id: number | null, form: ProjectFormData) {
 
     if (projectId) {
         const { error } = await supabase.from('projects').update(projectPayload).eq('id', projectId);
-        if (error) throw error;
+        throwDbError(error, 'No se pudo actualizar el proyecto');
     } else {
         const { data, error } = await supabase.from('projects').insert(projectPayload).select('id').single();
-        if (error) throw error;
+        throwDbError(error, 'No se pudo crear el proyecto');
+        if (!data?.id) throw new Error('No se pudo crear el proyecto');
         projectId = data.id;
     }
 
     await Promise.all(
-        (['es', 'en'] as const).map((locale) =>
-            upsertTranslation('project_translations', { project_id: projectId!, locale }, {
-                name: form.name[locale],
-                description: form.description[locale],
-                long_description: null,
-            }),
-        ),
+        (['es', 'en'] as const).map((locale) => {
+            const name = form.name[locale].trim() || form.name.es.trim();
+            const description = form.description[locale].trim() || form.description.es.trim();
+            return upsertTranslation('project_translations', { project_id: projectId!, locale }, {
+                name,
+                description,
+                // La ficha pública lee primero long_description; lo igualamos para que el texto del admin se vea.
+                long_description: description,
+            });
+        }),
     );
 
-    await supabase.from('project_technologies').delete().eq('project_id', projectId!);
+    const mediaWarning = await saveProjectMedia(projectId!, form.media);
+    const technologiesWarning = await syncProjectTechnologies(projectId!, form.technology_ids);
+    const warning = [mediaWarning, technologiesWarning].filter(Boolean).join(' ');
 
-    if (form.technology_ids.length > 0) {
-        const { error } = await supabase.from('project_technologies').insert(
-            form.technology_ids.map((technology_id) => ({ project_id: projectId!, technology_id })),
-        );
-        if (error) throw error;
-    }
-
-    await saveProjectMedia(projectId!, form.media);
-
-    return projectId!;
+    return { id: projectId!, warning: warning || null };
 }
 
-/** Reemplaza todas las filas de `project_media` del proyecto según el formulario. */
-async function saveProjectMedia(projectId: number, items: ProjectMediaFormItem[]) {
+function isRlsDenied(error: { code?: string; message?: string } | null): boolean {
+    if (!error) return false;
+    return error.code === '42501' || /row-level security|permission denied/i.test(error.message ?? '');
+}
+
+const TECHNOLOGIES_RLS_WARNING =
+    'Las tecnologías no se guardaron (RLS en project_technologies).';
+const MEDIA_RLS_WARNING =
+    'Las imágenes no se guardaron (RLS en project_media).';
+
+/** Solo inserta/borra el diff. Si RLS lo impide, no tira abajo el resto del guardado. */
+async function syncProjectTechnologies(projectId: number, technologyIds: number[]): Promise<string | null> {
+    const uniqueIds = [...new Set(technologyIds.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))];
+    const { data: existing, error: selectError } = await supabase
+        .from('project_technologies')
+        .select('technology_id')
+        .eq('project_id', projectId);
+    if (isRlsDenied(selectError)) return TECHNOLOGIES_RLS_WARNING;
+    throwDbError(selectError, 'No se pudieron leer las tecnologías del proyecto');
+
+    const current = new Set((existing ?? []).map((row) => Number(row.technology_id)));
+    const toInsert = uniqueIds.filter((id) => !current.has(id));
+    const toDelete = [...current].filter((id) => !uniqueIds.includes(id));
+
+    if (toInsert.length > 0) {
+        const { error } = await supabase.from('project_technologies').insert(
+            toInsert.map((technology_id) => ({ project_id: projectId, technology_id })),
+        );
+        if (isRlsDenied(error)) return TECHNOLOGIES_RLS_WARNING;
+        throwDbError(
+            error,
+            'No se pudieron guardar las tecnologías. Falta permiso de escritura en project_technologies.',
+        );
+    }
+
+    if (toDelete.length > 0) {
+        const { error } = await supabase
+            .from('project_technologies')
+            .delete()
+            .eq('project_id', projectId)
+            .in('technology_id', toDelete);
+        if (isRlsDenied(error)) return TECHNOLOGIES_RLS_WARNING;
+        throwDbError(error, 'No se pudieron quitar tecnologías del proyecto');
+    }
+
+    return null;
+}
+
+/** Reemplaza `project_media` solo si cambió. Si RLS bloquea, no tira abajo el resto. */
+async function saveProjectMedia(projectId: number, items: ProjectMediaFormItem[]): Promise<string | null> {
     const cleaned = items.map((m) => ({ ...m, url: m.url.trim() })).filter((m) => m.url.length > 0);
 
     let normalized = cleaned;
@@ -223,10 +299,38 @@ async function saveProjectMedia(projectId: number, items: ProjectMediaFormItem[]
         }));
     }
 
-    const { error: deleteError } = await supabase.from('project_media').delete().eq('project_id', projectId);
-    if (deleteError) throw deleteError;
+    const { data: existing, error: selectError } = await supabase
+        .from('project_media')
+        .select('url, order, is_thumbnail')
+        .eq('project_id', projectId)
+        .order('order', { ascending: true });
+    if (isRlsDenied(selectError)) return MEDIA_RLS_WARNING;
+    throwDbError(selectError, 'No se pudieron leer las imágenes del proyecto');
 
-    if (normalized.length === 0) return;
+    const current = (existing ?? []).map((row) => ({
+        url: String(row.url ?? '').trim(),
+        order: Number(row.order),
+        is_thumbnail: Boolean(row.is_thumbnail),
+    }));
+    const next = normalized.map((m, index) => ({
+        url: m.url,
+        order: index,
+        is_thumbnail: m.is_thumbnail,
+    }));
+    const unchanged =
+        current.length === next.length &&
+        current.every((row, index) =>
+            row.url === next[index].url &&
+            row.order === next[index].order &&
+            row.is_thumbnail === next[index].is_thumbnail,
+        );
+    if (unchanged) return null;
+
+    const { error: deleteError } = await supabase.from('project_media').delete().eq('project_id', projectId);
+    if (isRlsDenied(deleteError)) return MEDIA_RLS_WARNING;
+    throwDbError(deleteError, 'No se pudieron actualizar las imágenes del proyecto');
+
+    if (normalized.length === 0) return null;
 
     const { error: insertError } = await supabase.from('project_media').insert(
         normalized.map((m, index) => ({
@@ -237,7 +341,9 @@ async function saveProjectMedia(projectId: number, items: ProjectMediaFormItem[]
             is_thumbnail: m.is_thumbnail,
         })),
     );
-    if (insertError) throw insertError;
+    if (isRlsDenied(insertError)) return MEDIA_RLS_WARNING;
+    throwDbError(insertError, 'No se pudieron guardar las imágenes del proyecto');
+    return null;
 }
 
 export async function updateProjectsOrder(orderedIds: number[]) {
@@ -421,10 +527,31 @@ export async function deleteTechnology(id: number) {
     if (error) throw error;
 }
 
-export async function fetchCategories() {
-    const { data, error } = await supabase.from('categories').select('id, slug');
+export type AdminCategoryOption = {
+    id: number;
+    slug: string;
+    name: string;
+};
+
+export async function fetchCategories(): Promise<AdminCategoryOption[]> {
+    const { data, error } = await supabase
+        .from('categories')
+        .select('id, slug, category_translations(locale, name)')
+        .order('id', { ascending: true });
     if (error) throw error;
-    return data ?? [];
+
+    type CategoryQueryRow = {
+        id: number;
+        slug: string;
+        category_translations: { locale: string; name: string }[] | null;
+    };
+
+    return ((data ?? []) as CategoryQueryRow[]).map((row) => {
+        const translations = row.category_translations ?? [];
+        const es = translations.find((t) => t.locale === 'es')?.name;
+        const en = translations.find((t) => t.locale === 'en')?.name;
+        return { id: row.id, slug: row.slug, name: es || en || row.slug };
+    });
 }
 
 export type AdminDashboardStats = {

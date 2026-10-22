@@ -10,6 +10,7 @@ interface AdminModalProps {
     children: React.ReactNode;
     footer?: React.ReactNode;
     className?: string;
+    bodyClassName?: string;
 }
 
 const AdminModal: React.FC<AdminModalProps> = ({
@@ -19,6 +20,7 @@ const AdminModal: React.FC<AdminModalProps> = ({
     children,
     footer,
     className,
+    bodyClassName,
 }) => {
     const titleId = useId();
 
@@ -99,7 +101,12 @@ const AdminModal: React.FC<AdminModalProps> = ({
                     </div>
 
                     {/* Contenido: texto oscuro sobre fondo blanco */}
-                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white px-5 py-5 text-[#212529] sm:px-6">
+                    <div
+                        className={cn(
+                            'min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white px-5 py-5 text-[#212529] sm:px-6',
+                            bodyClassName,
+                        )}
+                    >
                         {children}
                     </div>
 
