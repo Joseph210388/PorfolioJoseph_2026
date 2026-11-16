@@ -12,7 +12,8 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({ title, description, on
     <header
         className={cn(
             'flex shrink-0 items-center justify-between gap-4 border-b px-4 py-3 sm:px-6',
-            'border-[var(--admin-border)] bg-[var(--admin-main)]',
+            // En móvil la barra del título usa el azul del sidebar; desde lg vuelve al fondo claro.
+            'border-white/10 bg-[var(--admin-sidebar)] lg:border-[var(--admin-border)] lg:bg-[var(--admin-main)]',
         )}
     >
         <div className="flex min-w-0 items-center gap-3">
@@ -20,18 +21,18 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({ title, description, on
                 <button
                     type="button"
                     onClick={onMenuClick}
-                    className="shrink-0 rounded-lg p-2 text-[var(--admin-text-muted)] hover:bg-slate-100 lg:hidden"
+                    className="shrink-0 rounded-lg p-2 text-white hover:bg-white/10 lg:hidden"
                     aria-label="Abrir menú"
                 >
                     <Menu className="h-5 w-5" />
                 </button>
             ) : null}
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-[var(--admin-text)] sm:text-xl">
+                <h1 className="truncate text-lg font-semibold tracking-tight text-white sm:text-xl lg:text-[var(--admin-text)]">
                     {title}
                 </h1>
                 {description ? (
-                    <p className="truncate text-xs text-[var(--admin-text-muted)] sm:text-sm">{description}</p>
+                    <p className="truncate text-xs text-white/70 sm:text-sm lg:text-[var(--admin-text-muted)]">{description}</p>
                 ) : null}
             </div>
         </div>

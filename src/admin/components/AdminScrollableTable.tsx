@@ -46,9 +46,9 @@ export const AdminScrollableTable: React.FC<AdminScrollableTableProps> = ({
     );
 };
 
-/** Clases para thead sticky dentro del scroll. */
+/** Cabecera sticky. Azul marino solo en móvil; desde lg vuelve al gris claro. */
 export const adminTableHeadClass =
-    'sticky top-0 z-10 border-b border-[var(--admin-border)] bg-slate-50 shadow-[0_1px_0_0_var(--admin-border)]';
+    'sticky top-0 z-10 border-b border-white/10 bg-[var(--admin-sidebar)] lg:border-[var(--admin-border)] lg:bg-slate-50 lg:shadow-[0_1px_0_0_var(--admin-border)]';
 
 export const adminTableThClass =
-    'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--admin-text-muted)] bg-slate-50';
+    'bg-[var(--admin-sidebar)] px-4 py-3 text-xs font-semibold uppercase tracking-wider text-white lg:bg-slate-50 lg:text-[var(--admin-text-muted)]';
